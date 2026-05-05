@@ -1,0 +1,21 @@
+{
+  "name": "Claudio",
+  "short_name": "Claudio",
+  "description": "Personal AI radio — Claudio reads your taste, plans the voice, plays like a DJ.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#07080c",
+  "theme_color": "#07080c",
+  "lang": "en",
+  "categories": ["music", "lifestyle"],
+  "icons": [
+    {
+      "src": "assets/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

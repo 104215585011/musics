@@ -1,0 +1,14 @@
+{
+  "description": "个人歌单标注 — 给歌单起昵称、打标签、写备注",
+  "annotations": [
+    {
+      "playlistId": "",
+      "nickname": "我的深夜开车歌单",
+      "tags": [
+        "night-drive",
+        "synth"
+      ],
+      "notes": "最适合晚上10点以后听"
+    }
+  ]
+}

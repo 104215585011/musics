@@ -1,0 +1,393 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#07080c" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Claudio" />
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="icon" type="image/svg+xml" href="./assets/icons/icon.svg" />
+    <link rel="apple-touch-icon" href="./assets/icons/icon.svg" />
+    <title>Claudio x mmguo FM</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Doto:wght@400;600&family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@300;400;500&family=VT323&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css?v=claudio-v46" />
+  </head>
+  <body data-active-view="player">
+    <div class="electron-titlebar" id="electronTitlebar" hidden>
+      <div class="titlebar-drag">
+        <img src="./assets/icons/icon.svg" class="titlebar-icon" alt="" aria-hidden="true" />
+        <span class="titlebar-title">Claudio FM</span>
+      </div>
+      <div class="titlebar-controls">
+        <button class="titlebar-btn titlebar-min" id="btnMin" type="button" aria-label="Minimize">-</button>
+        <button class="titlebar-btn titlebar-max" id="btnMax" type="button" aria-label="Maximize">□</button>
+        <button class="titlebar-btn titlebar-close" id="btnClose" type="button" aria-label="Close">×</button>
+      </div>
+    </div>
+
+    <nav class="view-nav" aria-label="Primary">
+      <button class="view-nav__tab is-active" data-view-tab="player" type="button">Player</button>
+      <button class="view-nav__tab" data-view-tab="profile" type="button">Profile</button>
+      <button class="view-nav__tab" data-view-tab="settings" type="button">Settings</button>
+      <span class="live-dot" data-live-dot data-state="idle" title="Stream: idle" aria-label="Stream status">
+        <span class="live-dot__core"></span>
+      </span>
+    </nav>
+
+    <main class="stage">
+      <div class="fluid fluid--blue" aria-hidden="true"></div>
+      <div class="fluid fluid--violet" aria-hidden="true"></div>
+      <div class="fluid fluid--accent" aria-hidden="true"></div>
+      <div class="bg-grain" aria-hidden="true"></div>
+      <div class="bg-noise" aria-hidden="true"></div>
+
+      <!-- ====================== PLAYER VIEW ====================== -->
+      <div class="view view--player is-active" data-view="player">
+        <section class="radio-card" data-player>
+          <header class="terminal">
+            <div class="terminal__topbar">
+              <div class="terminal__id">
+                <span class="terminal__avatar" aria-hidden="true">
+                  <span class="terminal__avatar-dot"></span>
+                </span>
+                <h1 class="terminal__title">Claudio</h1>
+              </div>
+              <div class="terminal__actions">
+                <button class="terminal__theme-btn is-active" data-desktop-theme="dark" type="button" aria-label="Use dark desktop theme">Dark</button>
+                <button class="terminal__theme-btn" data-desktop-theme="light" type="button" aria-label="Use light desktop theme">Light</button>
+                <span class="terminal__clock" data-clock>18:14</span>
+              </div>
+            </div>
+
+            <div class="terminal__status">
+              <span class="terminal__dot" data-status-dot></span>
+              <span data-status>Paused</span>
+            </div>
+
+            <button class="wave-stage" type="button" data-wave-tap aria-label="Seek using waveform">
+              <div class="waveform" data-waveform></div>
+            </button>
+          </header>
+
+          <section class="sheet">
+            <div class="sheet__head">
+              <div class="sheet__head-text">
+                <p class="sheet__kicker"><span data-artist-badge>mmguo</span>'s</p>
+                <h2 class="sheet__title">Pilot Episode</h2>
+                <p class="sheet__sub">
+                  <span data-title>Blinding Lights</span>
+                  <span class="sheet__sub-dash">—</span>
+                  <span data-subtitle>The Weeknd</span>
+                </p>
+              </div>
+              <a class="apple-link" href="#" target="_blank" rel="noreferrer">
+                <span aria-hidden="true">♪</span> Listen on Apple Music
+                <span aria-hidden="true" class="apple-link__arrow">↗</span>
+              </a>
+              <div class="desktop-transport" aria-label="Desktop transport controls">
+                <button class="desktop-transport__btn" data-prev type="button" aria-label="Previous track">⏮</button>
+                <button class="desktop-transport__btn" data-next type="button" aria-label="Next track">⏭</button>
+                <button class="desktop-transport__btn" data-queue-toggle type="button" aria-label="Show queue">Queue</button>
+                <button class="desktop-transport__btn" data-favorite type="button" aria-label="Favorite current track">♡</button>
+              </div>
+            </div>
+
+            <div class="player-row">
+              <button class="play-button" data-play type="button" aria-label="Play / pause">Play</button>
+              <div class="player-row__rail">
+                <div class="progress-rail" data-progress-rail role="slider" aria-label="Playback position">
+                  <span class="progress-fill" data-progress-fill></span>
+                  <span class="progress-thumb" data-progress-thumb></span>
+                </div>
+                <div class="player-row__times">
+                  <span data-current-time>0:00</span>
+                  <span class="player-row__sep">/</span>
+                  <span data-duration>0:29</span>
+                </div>
+              </div>
+            </div>
+
+            <section class="desktop-queue" data-desktop-queue hidden>
+              <div class="desktop-queue__head">
+                <div>
+                  <p class="desktop-queue__kicker">Queue</p>
+                  <h3 class="desktop-queue__title">账户已注笑喜欢的音乐</h3>
+                </div>
+                <button class="desktop-queue__close" data-queue-close type="button" aria-label="Hide queue">Hide</button>
+              </div>
+              <ol class="desktop-queue__list" data-desktop-queue-list></ol>
+            </section>
+
+            <div class="transcript-list" data-transcript></div>
+
+            <section class="chat" data-chat>
+              <div class="chat__thread" data-chat-thread aria-live="polite">
+                <div class="chat__hint">Tell Claudio what you want to hear, or just chat.</div>
+              </div>
+              <form class="chat__composer" data-chat-form autocomplete="off">
+                <input
+                  type="text"
+                  class="chat__input"
+                  data-chat-input
+                  placeholder="Ask Claudio..."
+                  autocomplete="off"
+                  spellcheck="false"
+                  aria-label="Message Claudio"
+                />
+                <button class="chat__send" type="submit" aria-label="Send" data-chat-send>
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M5 12h14M13 6l6 6-6 6"></path>
+                  </svg>
+                </button>
+              </form>
+            </section>
+
+            <div class="hidden-controls" aria-hidden="true">
+              <button data-shuffle type="button">Shuffle</button>
+              <button data-repeat type="button">Repeat</button>
+              <button data-volume-button type="button">High</button>
+              <div data-volume-rail>
+                <span data-volume-fill></span>
+                <span data-volume-thumb></span>
+              </div>
+              <span data-album-badge>After Hours</span>
+            </div>
+          </section>
+        </section>
+      </div>
+
+      <!-- ====================== PROFILE VIEW ====================== -->
+      <div class="view view--profile" data-view="profile" hidden>
+        <section class="profile-card">
+          <header class="profile-card__head">
+            <div class="profile-avatar" aria-hidden="true">
+              <span class="profile-avatar__inner">M</span>
+            </div>
+            <div>
+              <p class="profile-card__kicker">Listener</p>
+              <h2 class="profile-card__name" data-profile-name>mmguo</h2>
+              <p class="profile-card__handle" data-profile-handle>@mmguo · since 2026</p>
+            </div>
+          </header>
+
+          <section class="profile-section" hidden>
+            <h3 class="profile-section__title">Taste</h3>
+            <div class="taste-tags" data-taste-tags>
+              <span class="taste-tag is-loading">loading...</span>
+            </div>
+          </section>
+
+          <section class="profile-section" hidden>
+            <h3 class="profile-section__title">Context</h3>
+            <div class="context-card" data-context-card>
+              <p class="context-card__eyebrow" data-context-scene>scene loading...</p>
+              <p class="context-card__title" data-context-pick>Building your radio context</p>
+              <p class="context-card__reason" data-context-reason>Reading local memory, playlists, and current queue.</p>
+            </div>
+          </section>
+
+          <section class="profile-section" hidden>
+            <h3 class="profile-section__title">Today's plan</h3>
+            <ul class="plan-list" data-plan-list>
+              <li class="plan-item is-loading">loading...</li>
+            </ul>
+          </section>
+
+          <section class="profile-section">
+            <h3 class="profile-section__title">Playlists</h3>
+            <div class="playlist-filters" aria-label="Playlist filters">
+              <button class="playlist-filter" type="button" data-track-filter="hideLocked">Hide locked</button>
+              <button class="playlist-filter" type="button" data-track-filter="hideFailed">Hide failed</button>
+            </div>
+            <ul class="playlist-list" data-playlist-list>
+              <li class="playlist-item is-loading">loading...</li>
+            </ul>
+          </section>
+
+          <section class="profile-section" hidden>
+            <h3 class="profile-section__title">Listening</h3>
+            <div class="stats-grid" data-stats-grid>
+              <div class="stat is-loading">
+                <span class="stat__value" data-stat-today-min>—</span>
+                <span class="stat__unit">min today</span>
+              </div>
+              <div class="stat is-loading">
+                <span class="stat__value" data-stat-week-min>—</span>
+                <span class="stat__unit">min this week</span>
+              </div>
+              <div class="stat is-loading">
+                <span class="stat__value" data-stat-tracks>—</span>
+                <span class="stat__unit">tracks</span>
+              </div>
+            </div>
+            <p class="profile-subtitle" data-stats-top-label>Top tracks</p>
+            <ul class="top-list" data-stats-top>
+              <li class="top-item is-loading">loading...</li>
+            </ul>
+          </section>
+
+          <section class="profile-section">
+            <h3 class="profile-section__title">Now</h3>
+            <div class="now-card" data-now-card>
+              <p class="now-card__title" data-now-title>—</p>
+              <p class="now-card__sub" data-now-sub>not connected</p>
+              <button class="now-card__login" data-now-login type="button" hidden>Login with NetEase</button>
+              <button class="now-card__logout" data-now-logout type="button" hidden>Logout</button>
+            </div>
+          </section>
+
+          <section class="profile-section" hidden>
+            <h3 class="profile-section__title">Memory</h3>
+            <div class="memory-grid" data-memory-grid>
+              <div class="memory-column">
+                <p class="memory-column__title">Recent plays</p>
+                <ul class="memory-list" data-memory-plays>
+                  <li class="memory-item is-loading">loading...</li>
+                </ul>
+              </div>
+              <div class="memory-column">
+                <p class="memory-column__title">Failed</p>
+                <ul class="memory-list" data-memory-failed>
+                  <li class="memory-item is-loading">loading...</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+        </section>
+      </div>
+
+      <!-- ====================== SETTINGS VIEW ====================== -->
+      <div class="view view--settings" data-view="settings" hidden>
+        <section class="settings-card">
+          <section class="settings-group">
+            <h3 class="settings-group__title">Server</h3>
+            <label class="settings-field">
+              <span>API base URL</span>
+              <input
+                type="url"
+                data-setting-api-base
+                placeholder="http://localhost:3000"
+                spellcheck="false"
+                autocomplete="off"
+              />
+            </label>
+            <p class="settings-hint" data-settings-hint>Same origin (default)</p>
+            <button class="settings-button" type="button" data-settings-test>Test connection</button>
+            <p class="settings-status" data-settings-status></p>
+          </section>
+
+          <section class="settings-group">
+            <h3 class="settings-group__title">Music</h3>
+            <div class="brain-status" data-music-status>
+              <span class="brain-status__dot"></span>
+              <span class="brain-status__text">Checking NetEase...</span>
+            </div>
+            <button class="settings-button" type="button" data-settings-login style="margin-top: 8px;">Login with NetEase</button>
+            <button class="settings-button" type="button" data-settings-logout style="margin-top: 8px;" hidden>Logout</button>
+          </section>
+
+          <section class="settings-group">
+            <h3 class="settings-group__title">Brain</h3>
+            <div class="brain-status" data-brain-status>
+              <span class="brain-status__dot"></span>
+              <span class="brain-status__text">Checking AICODEE...</span>
+            </div>
+          </section>
+
+          <section class="settings-group" data-user-files hidden>
+            <h3 class="settings-group__title">Persona Files</h3>
+            <p style="margin: 0 0 8px 0; font-size: 12px; color: #777;">Teach Claudio your taste, routines, and mood rules.</p>
+            <div data-user-files-list></div>
+            <div data-user-files-editor style="display:none; margin-top: 12px;">
+              <div data-user-files-editor-name style="font-weight:600; margin-bottom:4px;"></div>
+              <textarea data-user-files-editor-text style="width:100%; min-height:160px; background:#0f111a; color:#e0e0e0; border:1px solid #2a2d3a; border-radius:6px; padding:10px; font-family:monospace; font-size:13px; resize:vertical;"></textarea>
+              <div style="display:flex; gap:8px; margin-top:8px;">
+                <button type="button" data-user-files-save class="settings-button">Save</button>
+                <button type="button" data-user-files-cancel class="settings-button" style="background:#2a2d3a;">Cancel</button>
+              </div>
+              <div data-user-files-status style="margin-top:6px; font-size:12px;"></div>
+            </div>
+          </section>
+
+          <section class="settings-group" data-upnp-panel hidden>
+            <h3 class="settings-group__title">Speakers (UPnP)</h3>
+            <p style="margin: 0 0 8px 0; font-size: 12px; color: #777;">Push music to your network speakers.</p>
+            <div data-upnp-status style="margin-bottom: 8px; font-size: 12px; color: #4ade80;"></div>
+            <button type="button" data-upnp-scan class="settings-button" style="margin-right:8px;">Scan for speakers</button>
+            <button type="button" data-upnp-disconnect class="settings-button" style="background:#2a2d3a; display:none;">Disconnect</button>
+            <div data-upnp-devices style="margin-top: 8px;"></div>
+          </section>
+
+          <section class="settings-group" hidden>
+            <h3 class="settings-group__title">Scene</h3>
+            <label class="tweak-row">
+              <span>Glow</span>
+              <input data-tweak="tone" type="range" min="180" max="320" value="248" />
+            </label>
+            <label class="tweak-row">
+              <span>Night hue</span>
+              <input data-tweak="blue" type="range" min="180" max="250" value="220" />
+            </label>
+            <label class="tweak-row">
+              <span>Glass blur</span>
+              <input data-tweak="blur" type="range" min="8" max="30" value="16" />
+            </label>
+          </section>
+
+          <section class="settings-group">
+            <h3 class="settings-group__title">About</h3>
+            <p class="settings-about">
+              Claudio · personal AI radio<br />
+              <span class="settings-about__dim">Local-first PWA · Node.js hub · Claude Code brain</span>
+            </p>
+          </section>
+        </section>
+      </div>
+    </main>
+
+    <!-- ====== Floating settings shortcut ====== -->
+    <button class="settings-fab" type="button" aria-label="Open settings" data-settings-toggle>
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+      </svg>
+    </button>
+
+    <audio data-audio hidden></audio>
+
+    <div class="sw-toast" data-sw-toast hidden role="status" aria-live="polite">
+      <span class="sw-toast__text">New version ready</span>
+      <button class="sw-toast__action" type="button" data-sw-reload>Reload</button>
+      <button class="sw-toast__close" type="button" data-sw-dismiss aria-label="Dismiss">×</button>
+    </div>
+
+    <div class="login-modal" data-login-modal hidden role="dialog" aria-modal="true" aria-label="NetEase login">
+      <div class="login-modal__panel">
+        <button class="login-modal__close" type="button" data-login-close aria-label="Close login">×</button>
+        <p class="login-modal__kicker">NetEase Login</p>
+        <h2 class="login-modal__title">Scan with NetEase Cloud Music</h2>
+        <div class="login-modal__qr">
+          <img data-login-qr alt="NetEase login QR code" />
+        </div>
+        <p class="login-modal__message" data-login-message>Waiting for QR code...</p>
+        <ol class="login-modal__steps">
+          <li>Open <strong>NetEase Cloud Music</strong> app</li>
+          <li>Tap the <strong>scan</strong> icon (top-right)</li>
+          <li>Point at this QR code to log in</li>
+        </ol>
+      </div>
+    </div>
+
+    <script src="api.js?v=claudio-v46" defer></script>
+    <script src="script.js?v=claudio-v46" defer></script>
+    <script src="app.js?v=claudio-v46" defer></script>
+  </body>
+</html>
