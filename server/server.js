@@ -15,35 +15,6 @@ const { startScheduler } = require("./services/scheduler.js");
 const { createUPnPService } = require("./services/upnp.js");
 const { createClaudioRouter } = require("./routes/claudio.js");
 const { askAicodeeBrain } = require("./providers/brain/aicodee.js");
-const {
-  classifyPlaybackFailure,
-  getFailureReasonLabel,
-  isMatchingPlaybackTrack,
-} = require("./services/playback.js");
-const {
-  ensureQueueSeeded,
-  getCurrentQueueItem,
-  getCliCreatedPlaylists,
-  getCliNow,
-  getCliPlaylistTracks,
-  getCliQueue,
-  getCliSongLyric,
-  getCliStatus,
-  isCliQueueEmptyError,
-  getCliDailyRecommendations,
-  mergeQueueItems,
-  pickDefaultPlaylist,
-  playCliPlaylist,
-  playCliSong,
-  runTransport,
-  startCliLoginFlow,
-} = require("./providers/music/cli.js");
-const {
-  buildTrackBundle,
-  buildSeedReferencesFromDefaultSongIds,
-  ensureAnonymousAccessToken,
-  resolveSongReference,
-} = require("./providers/music/netease.js");
 const { createNeteaseApiProvider } = require("./providers/music/ncma.js");
 
 const MIME_TYPES = {
@@ -59,42 +30,15 @@ const MIME_TYPES = {
   ".webp": "image/webp",
 };
 
-const authState = {
-  accessToken: "",
-  refreshToken: "",
-  expiresAt: 0,
-  anonymousAccessToken: "",
-  anonymousRefreshToken: "",
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
 };
-
-const cliRuntime = {
-  loginProcess: null,
-  qrCodeUrl: "",
-  loginMessage: "",
-};
-
-const fallbackRuntime = {
-  primaryTrack: null,
-  defaultPlaylist: null,
-  seedItems: null,
-  lyrics: new Map(),
-};
-
-function playbackFailure(error) {
-  const reason = classifyPlaybackFailure(error);
-  return {
-    success: false,
-    reason,
-    message: String(error?.message ?? getFailureReasonLabel(reason) ?? error ?? "Playback request failed").slice(0, 240),
-  };
-}
-
-function wait(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 function sendJson(response, statusCode, payload) {
   response.writeHead(statusCode, {
+    ...CORS_HEADERS,
     "Content-Type": "application/json; charset=utf-8",
     "Cache-Control": "no-store",
   });
@@ -109,6 +53,7 @@ function sendFile(response, filePath) {
 
   const ext = path.extname(filePath).toLowerCase();
   response.writeHead(200, {
+    ...CORS_HEADERS,
     "Content-Type": MIME_TYPES[ext] ?? "application/octet-stream",
   });
   fs.createReadStream(filePath).pipe(response);
@@ -131,161 +76,13 @@ function createResponseHelpers(response) {
     },
     sse() {
       response.writeHead(200, {
+        ...CORS_HEADERS,
         "Content-Type": "text/event-stream; charset=utf-8",
         "Cache-Control": "no-store",
         Connection: "keep-alive",
       });
       response.write("\n");
     },
-  };
-}
-
-function buildFallbackNow(track, message) {
-  return {
-    track: track
-      ? {
-          id: track.id ?? "",
-          title: track.title ?? "Nothing playing",
-          artist: track.artist ?? "",
-          album: track.album ?? "",
-          duration: Number(track.duration ?? 0),
-          position: 0,
-          status: "stopped",
-          coverUrl: track.coverImgUrl ?? "",
-          source: track.source ?? "netease",
-          transcript: Array.isArray(track.transcript) ? track.transcript : [],
-        }
-      : null,
-    transport: {
-      canPlay: false,
-      canPause: false,
-      canSeek: false,
-      volume: 0,
-    },
-    meta: {
-      ready: false,
-      message,
-    },
-  };
-}
-
-async function loadPrimaryFallbackTrack(config) {
-  if (fallbackRuntime.primaryTrack) {
-    return fallbackRuntime.primaryTrack;
-  }
-
-  if (!config.netease.defaultSongIds.length) {
-    return null;
-  }
-
-  await ensureAnonymousAccessToken(config.netease, authState);
-  fallbackRuntime.primaryTrack = await buildTrackBundle(
-    config.netease.defaultSongIds[0],
-    config.netease,
-    authState
-  );
-  return fallbackRuntime.primaryTrack;
-}
-
-async function loadSeedItems(config) {
-  if (fallbackRuntime.seedItems) {
-    return fallbackRuntime.seedItems;
-  }
-
-  if (config.netease.defaultSongIds.length) {
-    await ensureAnonymousAccessToken(config.netease, authState);
-    fallbackRuntime.seedItems = await buildSeedReferencesFromDefaultSongIds(config.netease, authState);
-    if (fallbackRuntime.seedItems.length) {
-      return fallbackRuntime.seedItems;
-    }
-  }
-
-  fallbackRuntime.seedItems = await getCliDailyRecommendations(config.cli.command, 5).catch(() => []);
-  return fallbackRuntime.seedItems;
-}
-
-async function loadDefaultPlaylist(config) {
-  if (fallbackRuntime.defaultPlaylist) {
-    return fallbackRuntime.defaultPlaylist;
-  }
-
-  const playlists = await getCliCreatedPlaylists(config.cli.command).catch(() => []);
-  fallbackRuntime.defaultPlaylist = pickDefaultPlaylist(playlists, config.cli.defaultPlaylistName);
-  return fallbackRuntime.defaultPlaylist;
-}
-
-async function loadDefaultPlaylistSeedItems(config) {
-  const defaultPlaylist = await loadDefaultPlaylist(config).catch(() => null);
-  if (!defaultPlaylist?.encryptedId) {
-    return [];
-  }
-
-  return getCliPlaylistTracks(config.cli.command, defaultPlaylist.encryptedId, 30).catch(() => []);
-}
-
-async function buildQueueSnapshot(config) {
-  const rawQueue = await getCliQueue(config.cli.command).catch(() => []);
-  if (!rawQueue.length) {
-    return [];
-  }
-
-  const seedItems = await loadSeedItems(config).catch(() => []);
-  const playlistSeedItems = await loadDefaultPlaylistSeedItems(config).catch(() => []);
-  const merged = mergeQueueItems(rawQueue, [...seedItems, ...playlistSeedItems]);
-
-  fallbackRuntime.seedItems = mergeQueueItems(seedItems, merged);
-  return merged;
-}
-
-function markBlockedItems(items = [], store) {
-  const blockedIds = store?.getBlockedSongIds?.() ?? new Set();
-  const blockedReasons = store?.getBlockedSongMap?.() ?? new Map();
-  return items.map((item) => {
-    const encryptedId = String(item.encryptedId ?? "");
-    const originalId = String(item.originalId ?? "");
-    const isBlocked = blockedIds.has(encryptedId) || blockedIds.has(originalId);
-    if (!isBlocked) {
-      return item;
-    }
-    return {
-      ...item,
-      canPlay: false,
-      blockedReason:
-        blockedReasons.get(encryptedId) ||
-        blockedReasons.get(originalId) ||
-        "previous play attempt failed",
-    };
-  });
-}
-
-async function getCachedCliLyric(config, trackId) {
-  if (!trackId) {
-    return null;
-  }
-  const key = String(trackId);
-  if (fallbackRuntime.lyrics.has(key)) {
-    return fallbackRuntime.lyrics.get(key);
-  }
-  const lyric = await getCliSongLyric(config.cli.command, key).catch(() => null);
-  if (lyric?.transcript?.length || lyric?.originalId) {
-    fallbackRuntime.lyrics.set(key, lyric);
-  }
-  return lyric;
-}
-
-async function confirmCliSongPlayback(config, item) {
-  await wait(700);
-  const now = await getCliNow(config.cli.command, null).catch(() => null);
-  if (now?.track?.status === "playing" && isMatchingPlaybackTrack(now, item)) {
-    return { success: true, confirmed: true, now };
-  }
-
-  return {
-    success: false,
-    confirmed: false,
-    reason: "playback-not-confirmed",
-    message: getFailureReasonLabel("playback-not-confirmed"),
-    now,
   };
 }
 
@@ -314,243 +111,8 @@ function wrapUPnP(provider, upnp) {
 }
 
 function createMusicFacade(config, store, upnp) {
-  if (config.musicProvider === "netease-api") {
-    const provider = createNeteaseApiProvider(config.neteaseApi, store);
-    return wrapUPnP(provider, upnp);
-  }
-
-  const cliProvider = {
-    async status() {
-      return getCliStatus(config.cli.command, cliRuntime);
-    },
-    async login() {
-      return startCliLoginFlow(config.cli.command, cliRuntime);
-    },
-    async logout() {
-      return { success: true, message: "Not supported via CLI provider. Restart ncm-cli to clear session." };
-    },
-    async getNow() {
-      const status = await this.status();
-      const fallbackTrack = await loadPrimaryFallbackTrack(config).catch(() => null);
-
-      if (!status.available) {
-        return buildFallbackNow(fallbackTrack, "Music backend unavailable");
-      }
-
-      if (!status.configured) {
-        return buildFallbackNow(fallbackTrack, "CLI setup needed");
-      }
-
-      if (!status.loggedIn) {
-        return buildFallbackNow(fallbackTrack, "Login required");
-      }
-
-      if (!status.playerConfigured) {
-        return buildFallbackNow(fallbackTrack, "Player setup needed");
-      }
-
-      if (Number(status.state?.queueLength ?? 0) === 0) {
-        const defaultPlaylist = await loadDefaultPlaylist(config).catch(() => null);
-        if (defaultPlaylist?.encryptedId && defaultPlaylist?.originalId) {
-          await playCliPlaylist(config.cli.command, defaultPlaylist).catch(() => {});
-        } else {
-          const seedItems = await loadSeedItems(config).catch(() => []);
-          if (seedItems.length) {
-            await ensureQueueSeeded(config.cli.command, seedItems).catch(() => {});
-          }
-        }
-      }
-
-      const now = await getCliNow(config.cli.command, fallbackTrack);
-      const queueItems = await buildQueueSnapshot(config).catch(() => []);
-      const currentQueueItem = getCurrentQueueItem(queueItems);
-
-      if (
-        currentQueueItem &&
-        (!now.track?.id || now.track.title === "Nothing playing" || !now.track.title)
-      ) {
-        now.track = {
-          ...(now.track ?? {}),
-          id: currentQueueItem.encryptedId || now.track?.id || "",
-          originalId: currentQueueItem.originalId || "",
-          title: currentQueueItem.title || now.track?.title || "Nothing playing",
-          artist: currentQueueItem.artist || now.track?.artist || "",
-          album: currentQueueItem.album || now.track?.album || "",
-          duration: currentQueueItem.duration || now.track?.duration || 0,
-          coverUrl: currentQueueItem.coverImgUrl || now.track?.coverUrl || "",
-        };
-      }
-
-      if (currentQueueItem && currentQueueItem.canPlay === false && now.track?.status !== "playing") {
-        now.meta.message = "Current track unavailable for playback";
-      }
-
-      if (!now.track) {
-        return now;
-      }
-
-      try {
-        await ensureAnonymousAccessToken(config.netease, authState);
-        const reference = await resolveSongReference(now.track, config.netease, authState);
-        if (reference?.originalId) {
-          const lyricTrack = await buildTrackBundle(reference.originalId, config.netease, authState);
-          now.track.id = now.track.id || reference.encryptedId || lyricTrack.id || reference.originalId;
-          now.track.originalId = reference.originalId;
-          now.track.title = now.track.title || lyricTrack.title;
-          now.track.artist = now.track.artist || lyricTrack.artist;
-          now.track.album = now.track.album || lyricTrack.album;
-          now.track.coverUrl = now.track.coverUrl || lyricTrack.coverImgUrl || "";
-          if ((!now.track.duration || now.track.duration <= 0) && lyricTrack.duration) {
-            now.track.duration = lyricTrack.duration;
-          }
-          if ((!now.track.transcript || now.track.transcript.length === 0) && lyricTrack.transcript?.length) {
-            now.track.transcript = lyricTrack.transcript;
-          }
-        }
-      } catch {
-        // lyric enrichment is best-effort; transport state should still render
-      }
-
-      if ((!now.track.transcript || now.track.transcript.length === 0) && (now.track.id || currentQueueItem?.encryptedId)) {
-        const lyric = await getCachedCliLyric(
-          config,
-          currentQueueItem?.encryptedId || now.track.id
-        );
-        if (lyric?.transcript?.length) {
-          now.track.transcript = lyric.transcript;
-        }
-        if (!now.track.originalId && lyric?.originalId) {
-          now.track.originalId = lyric.originalId;
-        }
-      }
-
-      return now;
-    },
-    async getNext() {
-      const status = await this.status();
-      if (!status.readyForRemotePlayback) {
-        return [];
-      }
-
-      if (Number(status.state?.queueLength ?? 0) === 0) {
-        const defaultPlaylist = await loadDefaultPlaylist(config).catch(() => null);
-        if (defaultPlaylist?.encryptedId && defaultPlaylist?.originalId) {
-          await playCliPlaylist(config.cli.command, defaultPlaylist).catch(() => {});
-        } else {
-          const seedItems = await loadSeedItems(config).catch(() => []);
-          const seeded = await ensureQueueSeeded(config.cli.command, seedItems).catch(() => ({ items: [] }));
-          return seeded.items ?? [];
-        }
-      }
-
-      const queue = await buildQueueSnapshot(config).catch(() => []);
-      return markBlockedItems(queue, store);
-    },
-    async getPlaylists() {
-      // Let NetEase / CLI errors propagate so the route can surface them.
-      const playlists = await getCliCreatedPlaylists(config.cli.command);
-      const selected = pickDefaultPlaylist(playlists, config.cli.defaultPlaylistName);
-      return playlists.map((playlist) => ({
-        ...playlist,
-        selected: Boolean(selected?.encryptedId && playlist.encryptedId === selected.encryptedId),
-      }));
-    },
-    async getPlaylistTracks(playlistId, limit = 30) {
-      // Let errors propagate (e.g. NetEase rate-limit, auth failure).
-      const tracks = await getCliPlaylistTracks(
-        config.cli.command,
-        playlistId,
-        Math.min(Math.max(Number(limit) || 30, 1), 100)
-      );
-      return markBlockedItems(tracks, store);
-    },
-    async toggle() {
-      const status = await this.status();
-      const currentStatus = status.state?.status;
-      if (currentStatus === "playing") {
-        return runTransport(config.cli.command, "pause");
-      }
-
-      if (currentStatus === "paused") {
-        return runTransport(config.cli.command, "resume");
-      }
-
-      const queueItems = await buildQueueSnapshot(config).catch(() => []);
-      const currentQueueItem = getCurrentQueueItem(queueItems);
-      const playableItem =
-        currentQueueItem?.encryptedId && currentQueueItem?.originalId
-          ? currentQueueItem
-          : queueItems.find((item) => item.encryptedId && item.originalId);
-
-      if (currentStatus === "stopped" && playableItem?.encryptedId) {
-        const resumed = await runTransport(config.cli.command, "resume").catch(() => null);
-        if (resumed?.success !== false) {
-          return resumed ?? { success: true, message: "Resume requested" };
-        }
-      }
-
-      if (playableItem?.encryptedId && playableItem?.originalId) {
-        const result = await playCliSong(config.cli.command, playableItem).catch(playbackFailure);
-        if (result?.success === false) {
-          return result;
-        }
-        return confirmCliSongPlayback(config, playableItem).catch(() => result);
-      }
-
-      return {
-        success: false,
-        message: "Current queue has no playable song. Try another playlist or search result.",
-      };
-    },
-    async play(item) {
-      if (!item?.encryptedId || !item?.originalId) {
-        return {
-          success: false,
-          message: "This song is missing the encryptedId/originalId needed by ncm-cli.",
-        };
-      }
-      const result = await playCliSong(config.cli.command, item).catch(playbackFailure);
-      if (result?.success === false) {
-        const reason = result.reason || classifyPlaybackFailure(result);
-        store?.recordBlockedSong?.(item, getFailureReasonLabel(reason));
-        return {
-          ...result,
-          reason,
-          message: result.message || getFailureReasonLabel(reason),
-        };
-      }
-
-      const confirmation = await confirmCliSongPlayback(config, item).catch(() => ({
-        success: true,
-        confirmed: false,
-        message: "Playback request sent; confirmation unavailable.",
-      }));
-      if (confirmation.success === false) {
-        store?.recordBlockedSong?.(item, confirmation.message || getFailureReasonLabel(confirmation.reason));
-        return confirmation;
-      }
-
-      store?.recordPlay?.(item);
-      return {
-        ...result,
-        confirmed: Boolean(confirmation.confirmed),
-      };
-    },
-    async prev() {
-      return runTransport(config.cli.command, "prev");
-    },
-    async next() {
-      return runTransport(config.cli.command, "next");
-    },
-    async seek(seconds) {
-      return runTransport(config.cli.command, "seek", seconds);
-    },
-    async volume(level) {
-      return runTransport(config.cli.command, "volume", level);
-    },
-  };
-
-  return wrapUPnP(cliProvider, upnp);
+  const provider = createNeteaseApiProvider(config.neteaseApi, store);
+  return wrapUPnP(provider, upnp);
 }
 
 function createBrainFacade(config) {
@@ -594,6 +156,21 @@ function createBrainFacade(config) {
         });
       }
       return askAicodeeBrain(config.brain, { message, context: null, tools: null, executeTool: null });
+    },
+  };
+}
+
+function buildRouteErrorResponse(error) {
+  const message = String(error?.message || error || "Request failed");
+  const backendUnavailable =
+    /fetch failed|ECONNREFUSED|ECONNRESET|ETIMEDOUT|unavailable/i.test(message);
+
+  return {
+    statusCode: backendUnavailable ? 503 : 500,
+    payload: {
+      error: "Claudio hub request failed",
+      detail: message,
+      reason: backendUnavailable ? "backend-unavailable" : "unknown",
     },
   };
 }
@@ -648,6 +225,12 @@ function createServer(config) {
     const requestUrl = new URL(request.url, `http://${request.headers.host}`);
     const routeResponse = createResponseHelpers(response);
 
+    if (request.method === "OPTIONS") {
+      response.writeHead(204, CORS_HEADERS);
+      response.end();
+      return;
+    }
+
     if (requestUrl.pathname === "/api/health") {
       sendJson(response, 200, { status: "ok" });
       return;
@@ -658,12 +241,8 @@ function createServer(config) {
         return;
       }
     } catch (error) {
-      const queueEmpty = isCliQueueEmptyError(error);
-      sendJson(response, queueEmpty ? 409 : 500, {
-        error: "Claudio hub request failed",
-        detail: error.message,
-        reason: queueEmpty ? "queue-empty" : "unknown",
-      });
+      const errorResponse = buildRouteErrorResponse(error);
+      sendJson(response, errorResponse.statusCode, errorResponse.payload);
       return;
     }
 
@@ -755,11 +334,16 @@ function createServer(config) {
     : 4000;
 
   try {
-    neteaseProcess = spawn("npx", ["NeteaseCloudMusicApi"], {
+    const neteaseEntry = require.resolve("NeteaseCloudMusicApi/app.js");
+    const nodeCommand = process.env.npm_node_execpath || (process.platform === "win32" ? "node.exe" : "node");
+    neteaseProcess = spawn(nodeCommand, [neteaseEntry], {
       cwd: process.cwd(),
-      env: { ...process.env, PORT: String(neteaseApiPort) },
+      env: {
+        ...process.env,
+        PORT: String(neteaseApiPort),
+      },
       stdio: ["ignore", "pipe", "pipe"],
-      shell: true,
+      shell: false,
     });
     neteaseProcess.stdout?.on("data", (d) => {
       process.stdout.write(`[netease-api] ${d}`);
@@ -805,14 +389,17 @@ function createServer(config) {
   return httpServer;
 }
 
-const config = getConfig();
-const server = createServer(config);
+if (require.main === module) {
+  const config = getConfig();
+  const server = createServer(config);
 
-server.listen(config.port, () => {
-  console.log(`Claudio hub listening on http://localhost:${config.port}`);
-});
+  server.listen(config.port, () => {
+    console.log(`Claudio hub listening on http://localhost:${config.port}`);
+  });
+}
 
 module.exports = {
+  buildRouteErrorResponse,
   createMusicFacade,
   createResponseHelpers,
   createServer,

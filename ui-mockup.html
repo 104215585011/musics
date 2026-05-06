@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Claudio FM — Electron Mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=Doto:wght@400;600&family=Inter:wght@400;500;600;700&family=VT323&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --green: #4ade80;
+  --blue:  #60a5fa;
+  --font-pixel: "VT323", monospace;
+  --font-sans:  "Inter", sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+button { cursor: pointer; font-family: var(--font-sans); }
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: #05060a;
+  color: #f8fafc;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.app {
+  width: 100%; height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ══ TITLEBAR ══ */
+.titlebar {
+  height: 36px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(4,5,9,0.98);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.tl-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 14px;
+}
+
+.tl-icon {
+  width: 18px; height: 18px;
+  border-radius: 5px;
+  background: linear-gradient(135deg, #b97550, #6b3a26);
+  display: grid; place-items: center;
+}
+.tl-icon span {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.85);
+  display: block;
+}
+.tl-name {
+  font-family: var(--font-pixel);
+  font-size: 13px;
+  color: #444;
+  letter-spacing: 1px;
+}
+.tl-btns { display: flex; }
+.tb {
+  width: 46px; height: 36px;
+  border: 0; background: transparent;
+  color: #555; font-size: 13px;
+  transition: background 0.12s, color 0.12s;
+}
+.tb:hover { background: rgba(255,255,255,0.07); color: #ccc; }
+.tb.close:hover { background: #e81123; color: #fff; }
+
+/* ══ TERMINAL ══ */
+.terminal {
+  flex-shrink: 0;
+  padding: 14px 24px 0;
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  background:
+    radial-gradient(circle at 50% 45%, rgba(80,95,160,0.22), transparent 38%),
+    radial-gradient(circle, rgba(255,255,255,0.12) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(12,14,28,0.96), rgba(1,2,6,0.98));
+  background-size: auto, 16px 16px, auto;
+}
+
+.t-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.t-brand { display: flex; align-items: center; gap: 10px; }
+.t-avatar {
+  width: 22px; height: 22px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.18);
+  display: grid; place-items: center;
+}
+.t-avatar span {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.85);
+  display: block;
+}
+.t-title {
+  font-family: var(--font-pixel);
+  font-size: 1.8rem;
+  line-height: 1;
+  color: #f8fafc;
+  text-shadow: 0 0 22px rgba(74,222,128,0.3);
+}
+.t-actions { display: flex; align-items: center; gap: 8px; }
+.theme-btn {
+  min-width: 60px; height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(0,0,0,0.3);
+  color: rgba(255,255,255,0.6);
+  font-family: var(--font-pixel);
+  font-size: 0.95rem;
+  letter-spacing: 0.1em;
+  transition: all 0.12s;
+}
+.theme-btn.on { background: #f8fafc; color: #05060a; border-color: #f8fafc; }
+
+.t-clock {
+  font-family: "Doto", var(--font-pixel);
+  font-size: clamp(1.6rem, 2.5vw, 2.1rem);
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 0 34px rgba(255,255,255,0.18);
+  margin-left: 4px;
+}
+
+/* status pill — 改进版：小且低调 */
+.t-status {
+  margin: 6px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 20px;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
+.status-pill.err {
+  background: rgba(248,113,113,0.1);
+  border: 1px solid rgba(248,113,113,0.22);
+  color: #f87171;
+}
+.status-pill .dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.status-pill.err .dot { background: #f87171; }
+
+/* waveform */
+.wave-stage {
+  width: 100%; height: 104px;
+  flex-shrink: 0;
+  margin: 2px 0 0;
+  opacity: 0.92;
+  cursor: pointer;
+  mask-image: linear-gradient(180deg, transparent 0%, #000 16%, #000 100%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 16%, #000 100%);
+}
+canvas { display: block; width: 100%; height: 100%; }
+
+/* ══ SHEET — single column ══ */
+.sheet {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(74,222,128,0.09), transparent 24%),
+    radial-gradient(circle at 82% 86%, rgba(96,165,250,0.1), transparent 30%),
+    rgba(7,8,14,0.97);
+  color: #f8fafc;
+}
+
+/* ── 改进版 head：层级清晰，呼吸感强 ── */
+.sheet-head {
+  padding: 18px 30px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.song-info {}
+.song-show {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.38);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+.song-name {
+  font-size: 1.55rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.15;
+  margin-bottom: 4px;
+}
+.song-meta {
+  font-size: 13px;
+  color: rgba(255,255,255,0.45);
+}
+
+/* 改进版 transport：pill 玻璃风，hover 绿色 */
+.transport {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.t-btn {
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.75);
+  font-family: var(--font-pixel);
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+  display: flex; align-items: center; gap: 6px;
+  transition: transform 150ms ease, background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+.t-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(74,222,128,0.45);
+  background: rgba(74,222,128,0.12);
+  color: var(--green);
+}
+.t-btn.fav {
+  border-color: rgba(248,113,113,0.25);
+  color: rgba(248,113,113,0.7);
+  background: rgba(248,113,113,0.05);
+}
+.t-btn.fav:hover {
+  border-color: rgba(248,113,113,0.5);
+  background: rgba(248,113,113,0.12);
+  color: #f87171;
+  transform: translateY(-1px);
+}
+.q-badge {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: rgba(74,222,128,0.25);
+  color: var(--green);
+  font-size: 0.72rem;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  display: grid; place-items: center;
+}
+
+/* ── 改进版 player row ── */
+.player-row {
+  grid-column: 1 / -1;
+  padding: 10px 30px 11px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(255,255,255,0.018);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+/* 改进版 play btn：更有存在感 */
+.play-btn {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(255,255,255,0.92);
+  color: #05060a;
+  display: grid; place-items: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+  transition: background 0.12s, transform 0.1s, box-shadow 0.12s;
+}
+.play-btn:hover { background: #fff; box-shadow: 0 4px 14px rgba(0,0,0,0.5); }
+.play-btn:active { transform: scale(0.92); }
+
+.rail { flex: 1; }
+
+/* 改进版 progress：hover 变高 + 出现圆点 */
+.progress {
+  height: 2px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 1px;
+  position: relative;
+  cursor: pointer;
+  transition: height 0.15s;
+}
+.progress:hover { height: 4px; }
+.prog-fill {
+  position: absolute; inset: 0; width: 38%;
+  background: rgba(255,255,255,0.75);
+  border-radius: 1px;
+}
+.prog-thumb {
+  position: absolute; top: 50%; left: 38%;
+  transform: translate(-50%,-50%);
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.2);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.progress:hover .prog-thumb { opacity: 1; }
+.times {
+  display: flex; justify-content: space-between;
+  margin-top: 5px;
+  font-size: 10.5px;
+  color: rgba(255,255,255,0.45);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── transcript: full width, grows ── */
+.transcript {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 22px 30px 30px;
+  overflow-y: auto;
+  background:
+    radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px) 0 0 / 16px 16px,
+    rgba(0,0,0,0.16);
+}
+
+/* 改进版歌词行：三态清晰 */
+.lyric-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 5px 0;
+}
+.lyric-ts {
+  font-family: var(--font-pixel);
+  font-size: 0.88rem;
+  color: rgba(255,255,255,0.25);
+  flex-shrink: 0;
+  width: 30px;
+}
+.lyric-text {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: rgba(255,255,255,0.5);
+  transition: color 0.25s;
+}
+.lyric-row.active .lyric-ts { color: var(--blue); }
+.lyric-row.active .lyric-text {
+  color: var(--blue);
+  font-weight: 600;
+  text-shadow: 0 0 18px rgba(96,165,250,0.25);
+}
+.lyric-row.past .lyric-text { color: rgba(255,255,255,0.25); }
+
+/* ── chat: pinned bottom strip ── */
+.chat {
+  flex-shrink: 0;
+  padding: 12px 30px 18px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  background: rgba(0,0,0,0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.chat-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 90px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.chat-hint {
+  font-size: 12.5px;
+  color: rgba(255,255,255,0.28);
+  text-align: center;
+  padding: 6px 0 10px;
+}
+.bubble {
+  padding: 9px 13px;
+  border-radius: 13px;
+  font-size: 13px;
+  line-height: 1.55;
+  margin-bottom: 7px;
+  max-width: 90%;
+}
+.bubble.ai {
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.85);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.bubble.user {
+  background: rgba(74,222,128,0.12);
+  border: 1px solid rgba(74,222,128,0.22);
+  color: rgba(255,255,255,0.9);
+  margin-left: auto;
+}
+
+/* 改进版 composer：pill 形，focus 绿色边框 */
+.composer {
+  display: flex;
+  align-items: center;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 24px;
+  background: rgba(255,255,255,0.05);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.composer:focus-within {
+  border-color: rgba(74,222,128,0.38);
+  box-shadow: 0 0 0 3px rgba(74,222,128,0.07);
+}
+.chat-input {
+  flex: 1; border: 0;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  color: rgba(255,255,255,0.88);
+  background: transparent;
+  outline: none;
+}
+.chat-input::placeholder { color: rgba(255,255,255,0.25); }
+.send-btn {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(74,222,128,0.18);
+  color: var(--green);
+  display: grid; place-items: center;
+  margin-right: 4px; flex-shrink: 0;
+  transition: background 0.12s;
+}
+.send-btn:hover { background: rgba(74,222,128,0.3); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- TITLEBAR -->
+  <div class="titlebar">
+    <div class="tl-left">
+      <div class="tl-icon"><span></span></div>
+      <span class="tl-name">Claudio FM</span>
+    </div>
+    <div class="tl-btns">
+      <button class="tb">−</button>
+      <button class="tb">□</button>
+      <button class="tb close">×</button>
+    </div>
+  </div>
+
+  <!-- TERMINAL -->
+  <div class="terminal">
+    <div class="t-topbar">
+      <div class="t-brand">
+        <div class="t-avatar"><span></span></div>
+        <span class="t-title">Claudio</span>
+      </div>
+      <div class="t-actions">
+        <button class="theme-btn on">Dark</button>
+        <button class="theme-btn">Light</button>
+        <span class="t-clock">09:37</span>
+      </div>
+    </div>
+
+    <div class="t-status">
+      <div class="status-pill err">
+        <span class="dot"></span>
+        No playable URL — retrying…
+      </div>
+    </div>
+
+    <div class="wave-stage">
+      <canvas id="wc"></canvas>
+    </div>
+  </div>
+
+  <!-- SHEET -->
+  <div class="sheet">
+
+    <!-- head -->
+    <div class="sheet-head">
+      <div class="song-info">
+        <p class="song-show">Bread's Pilot Episode</p>
+        <h2 class="song-name">If</h2>
+        <p class="song-meta">Bread &nbsp;·&nbsp; Manna</p>
+      </div>
+      <div class="transport">
+        <button class="t-btn">⏮</button>
+        <button class="t-btn">⏭</button>
+        <button class="t-btn">Queue <span class="q-badge">4</span></button>
+        <button class="t-btn fav">♥</button>
+      </div>
+    </div>
+
+    <!-- player row -->
+    <div class="player-row">
+      <button class="play-btn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+      <div class="rail">
+        <div class="progress">
+          <div class="prog-fill"></div>
+          <div class="prog-thumb"></div>
+        </div>
+        <div class="times"><span>0:00</span><span>2:38</span></div>
+      </div>
+    </div>
+
+    <!-- left: lyrics -->
+    <div class="transcript">
+      <div class="lyric-row past">
+        <span class="lyric-ts">0:00</span>
+        <span class="lyric-text">If a picture paints a thousand words</span>
+      </div>
+      <div class="lyric-row active">
+        <span class="lyric-ts">0:16</span>
+        <span class="lyric-text">Then why can't I paint you?</span>
+      </div>
+      <div class="lyric-row">
+        <span class="lyric-ts">0:35</span>
+        <span class="lyric-text">The words will never show the you I've come to know</span>
+      </div>
+      <div class="lyric-row">
+        <span class="lyric-ts">0:52</span>
+        <span class="lyric-text">If a face could launch a thousand ships</span>
+      </div>
+      <div class="lyric-row">
+        <span class="lyric-ts">1:08</span>
+        <span class="lyric-text">Then where am I to go?</span>
+      </div>
+    </div>
+
+    <!-- bottom: chat -->
+    <div class="chat">
+      <div class="chat-thread">
+        <div class="chat-hint">Tell Claudio what you want to hear, or just chat.</div>
+        <div class="bubble ai">正在加载 Bread - If 的歌词，请稍候…</div>
+        <div class="bubble user">找找更多 70s 民谣</div>
+        <div class="bubble ai">好的，我来找几首同时期的作品放进队列。</div>
+      </div>
+      <div class="composer">
+        <input class="chat-input" placeholder="Ask Claudio…" />
+        <button class="send-btn">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14M13 6l6 6-6 6"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function () {
+  const canvas = document.getElementById('wc');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const progressRatio = 0.38;
+  const trackSeed = 7;
+  let phase = 0;
+
+  function waveRand(seed) {
+    const x = Math.sin(seed * 12.9898) * 43758.5453;
+    return x - Math.floor(x);
+  }
+
+  function resize() {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width  = Math.round(rect.width  * dpr);
+    canvas.height = Math.round(rect.height * dpr);
+    canvas.style.width  = rect.width  + 'px';
+    canvas.style.height = rect.height + 'px';
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.scale(dpr, dpr);
+  }
+
+  function draw() {
+    const cw = canvas.width  / dpr;
+    const ch = canvas.height / dpr;
+    ctx.clearRect(0, 0, cw, ch);
+    const barGap = 3, barWidth = 2, step = barGap + barWidth;
+    const count = Math.floor(cw / step);
+    const left  = (cw - count * step) / 2;
+    phase += 0.0015;
+    for (let i = 0; i < count; i++) {
+      const x = left + i * step;
+      const center = i / Math.max(1, count);
+      const env = 0.55 + 0.45 * Math.sin(center * Math.PI);
+      const n1 = Math.sin(i * 0.18 + phase * 2.2 + trackSeed * 0.05) * 0.5 + 0.5;
+      const n2 = Math.sin(i * 0.42 + phase * 1.1 + waveRand(i + trackSeed) * 6) * 0.5 + 0.5;
+      const n3 = Math.sin(i * 0.08 + phase * 0.8) * 0.5 + 0.5;
+      const isPlayed = center <= progressRatio;
+      const noise = waveRand(i + Math.floor(phase * 2) + trackSeed) * 8;
+      const amp = n1 * 0.55 + n2 * 0.35 + n3 * 0.1 + (isPlayed ? 0.1 : 0);
+      let h = amp * env * ch * 1.05 + noise;
+      h = Math.max(4, Math.min(ch - 4, h));
+      const y = ch - h;
+      const alpha = Math.min(0.92, 0.55 + 0.4 * (1 - Math.pow(center - 0.5, 2) * 2));
+      ctx.fillStyle = isPlayed
+        ? `rgba(82,183,255,${Math.min(0.96, alpha + 0.08)})`
+        : `rgba(255,255,255,${alpha})`;
+      ctx.fillRect(x, y, barWidth, h);
+    }
+    requestAnimationFrame(draw);
+  }
+
+  resize();
+  draw();
+  window.addEventListener('resize', resize);
+})();
+</script>
+</body>
+</html>

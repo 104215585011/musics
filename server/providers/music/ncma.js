@@ -4,9 +4,13 @@ const { classifyPlaybackFailure, getFailureReasonLabel } = require("../../servic
 function createNeteaseApiClient(config) {
   const baseUrl = String(config.baseUrl || "http://localhost:4000").replace(/\/+$/, "");
   const timeoutMs = Number(config.timeoutMs || 15000);
+  const proxy = String(config.proxy || "").trim();
 
   async function request(path, params = {}) {
     const url = new URL(path, baseUrl);
+    if (proxy && params.proxy == null) {
+      url.searchParams.set("proxy", proxy);
+    }
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== "") {
         url.searchParams.set(key, String(value));
@@ -34,7 +38,7 @@ function createNeteaseApiClient(config) {
     }
   }
 
-  return { baseUrl, request };
+  return { baseUrl, proxy, request };
 }
 
 function normalizeArtistList(song = {}) {

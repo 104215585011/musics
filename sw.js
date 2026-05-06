@@ -1,5 +1,5 @@
 // Claudio service worker: shell cache + audio prefetch + offline chat queue
-const VERSION = "claudio-v46";
+const VERSION = "claudio-v51";
 const AUDIO_CACHE = "claudio-audio-v2";
 const PREFETCH_CHUNK_BYTES = 160 * 1024; // ~160KB = ~10s at 128kbps
 const CHAT_QUEUE_KEY = "/__claudio-chat-queue__";

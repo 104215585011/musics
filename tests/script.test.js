@@ -8,8 +8,11 @@ const {
   getNextTrackIndex,
   parseTimedLyrics,
   buildTrackFromNeteaseData,
-  buildTrackFromCliState,
+  buildTrackFromPlaybackState,
   buildTrackFromClaudioNow,
+  normalizeDesktopLayout,
+  readDesktopLayout,
+  writeDesktopLayout,
   createPlayerController,
   getPlaylistTrackStatus,
   getChatReplyText,
@@ -27,6 +30,40 @@ test("formatTime renders m:ss values", () => {
   assert.equal(formatTime(0), "0:00");
   assert.equal(formatTime(9), "0:09");
   assert.equal(formatTime(200), "3:20");
+});
+
+test("normalizeDesktopLayout clamps adjustable module sizes", () => {
+  assert.deepEqual(
+    normalizeDesktopLayout({ waveHeight: 40, bodySplit: 90 }),
+    { waveHeight: 72, bodySplit: 72 }
+  );
+  assert.deepEqual(
+    normalizeDesktopLayout({ waveHeight: 180, bodySplit: 12 }),
+    { waveHeight: 150, bodySplit: 28 }
+  );
+  assert.deepEqual(
+    normalizeDesktopLayout({ waveHeight: 118.6, bodySplit: 48.2 }),
+    { waveHeight: 119, bodySplit: 48 }
+  );
+});
+
+test("desktop layout persistence falls back when storage is empty or invalid", () => {
+  const values = new Map();
+  const storage = {
+    getItem(key) {
+      return values.get(key) ?? null;
+    },
+    setItem(key, value) {
+      values.set(key, value);
+    },
+  };
+
+  assert.deepEqual(readDesktopLayout(storage), { waveHeight: 104, bodySplit: 48 });
+  values.set("claudioDesktopLayout", "{bad json");
+  assert.deepEqual(readDesktopLayout(storage), { waveHeight: 104, bodySplit: 48 });
+
+  writeDesktopLayout(storage, { waveHeight: 130, bodySplit: 35 });
+  assert.deepEqual(readDesktopLayout(storage), { waveHeight: 130, bodySplit: 35 });
 });
 
 test("getActiveTranscriptIndex returns the latest started line", () => {
@@ -206,8 +243,8 @@ test("buildTrackFromNeteaseData maps detail and lyric payloads into player track
   ]);
 });
 
-test("buildTrackFromCliState creates a display track for cli playback", () => {
-  const track = buildTrackFromCliState(
+test("buildTrackFromPlaybackState creates a display track for remote playback", () => {
+  const track = buildTrackFromPlaybackState(
     {
       title: "Nuit Blanche",
       artist: "Example Artist",

@@ -1,16 +1,26 @@
 (function () {
   var STORAGE_KEY = "claudio.apiBase";
+  var ELECTRON_BASE = "http://localhost:3000";
+
+  function isElectron() {
+    return Boolean(window.electronAPI && window.electronAPI.isElectron);
+  }
 
   function readBase() {
     try {
+      if (isElectron()) return ELECTRON_BASE;
       return localStorage.getItem(STORAGE_KEY) || "";
     } catch (_) {
-      return "";
+      return isElectron() ? ELECTRON_BASE : "";
     }
   }
 
   function writeBase(value) {
     try {
+      if (isElectron()) {
+        localStorage.removeItem(STORAGE_KEY);
+        return;
+      }
       if (value) localStorage.setItem(STORAGE_KEY, value);
       else localStorage.removeItem(STORAGE_KEY);
     } catch (_) {}
@@ -22,6 +32,11 @@
     if (base.endsWith("/")) base = base.slice(0, -1);
     if (!path.startsWith("/")) path = "/" + path;
     return base + path;
+  }
+
+  function withRequestUrl(error, url) {
+    if (error && typeof error === "object" && !error.url) error.url = url;
+    return error;
   }
 
   function jsonOrThrow(response) {
@@ -53,8 +68,12 @@
     return fetch(primaryUrl, options)
       .then(jsonOrThrow)
       .catch(function (error) {
-        if (!base) throw error;
-        return fetch(path, options).then(jsonOrThrow);
+        if (!base || isElectron()) throw withRequestUrl(error, primaryUrl);
+        return fetch(path, options)
+          .then(jsonOrThrow)
+          .catch(function (fallbackError) {
+            throw withRequestUrl(fallbackError, path);
+          });
       });
   }
 
@@ -210,7 +229,7 @@
       return post("/api/transport/volume", { level: level });
     },
     ping: function () {
-      return get("/api/now")
+      return get("/api/health")
         .then(function () {
           return true;
         })

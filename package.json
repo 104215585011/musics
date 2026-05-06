@@ -7,9 +7,12 @@
     "start": "node server/server.js",
     "dev": "node server/server.js",
     "desktop": "electron .",
-    "test": "node --test .\\tests\\*.test.js"
+    "test": "node .\\tests\\script.test.js && node .\\tests\\server.test.js && node .\\tests\\api.test.js"
   },
   "devDependencies": {
     "electron": "^33.4.11"
+  },
+  "dependencies": {
+    "NeteaseCloudMusicApi": "^4.31.0"
   }
 }

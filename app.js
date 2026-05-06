@@ -13,9 +13,33 @@
   setInterval(paint, 30000);
 })();
 
+// Electron talks to the local hub directly. Old PWA service workers can keep
+// serving stale JS after desktop updates, so clear them on desktop boot.
+(function clearElectronPwaCaches() {
+  if (!(window.electronAPI && window.electronAPI.isElectron)) return;
+  try { localStorage.removeItem("claudio.apiBase"); } catch (_) {}
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.getRegistrations()
+      .then(function (regs) {
+        regs.forEach(function (reg) { reg.unregister().catch(function () {}); });
+      })
+      .catch(function () {});
+  }
+  if ("caches" in window) {
+    caches.keys()
+      .then(function (keys) {
+        return Promise.all(keys
+          .filter(function (key) { return key.indexOf("claudio-") === 0; })
+          .map(function (key) { return caches.delete(key); }));
+      })
+      .catch(function () {});
+  }
+})();
+
 // service worker registration + upgrade prompt
 (function registerSW() {
   if (!("serviceWorker" in navigator)) return;
+  if (window.electronAPI && window.electronAPI.isElectron) return;
   if (location.protocol === "file:") return;
 
   var toast = document.querySelector("[data-sw-toast]");
@@ -1237,10 +1261,12 @@ function renderMemoryList(root, items, mapItem) {
         status.className = "settings-status";
         try {
           var ok = await api.ping();
-          status.textContent = ok ? "Connected" : "Server reachable but no /api/now";
+          status.textContent = ok ? "Connected" : "Server reachable but no /api/health";
           status.className = "settings-status " + (ok ? "is-ok" : "is-warn");
         } catch (e) {
-          status.textContent = e && e.message ? e.message : "Failed";
+          status.textContent = e && e.message
+            ? e.message + (e.url ? " (" + e.url + ")" : "")
+            : "Failed";
           status.className = "settings-status is-err";
         }
       });

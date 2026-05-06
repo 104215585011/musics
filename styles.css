@@ -2634,12 +2634,16 @@ body.is-electron .radio-card__noise {
   opacity: 0.14;
 }
 
+.layout-resizer {
+  display: none;
+}
+
 body.is-electron .terminal {
   flex: 0 0 auto;
   height: auto;
-  min-height: 0;
+  min-height: 164px;
   border-radius: 0;
-  padding: 12px 24px 0;
+  padding: 14px 24px 0;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -2727,7 +2731,7 @@ body.is-electron .terminal__clock {
 body.is-electron .terminal__status {
   position: static;
   transform: none;
-  margin: 6px 0 2px;
+  margin: 5px 0 0;
   padding: 0;
   width: 100%;
   display: flex;
@@ -2746,16 +2750,69 @@ body.is-electron .wave-stage {
   left: auto;
   right: auto;
   bottom: auto;
-  height: clamp(60px, 10vh, 100px);
+  height: var(--desktop-wave-height, 104px);
   flex: 0 0 auto;
-  margin: 4px 0 0;
-  opacity: 0.86;
-  mask-image: linear-gradient(180deg, transparent 0%, #000 22%, #000 100%);
-  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 22%, #000 100%);
+  margin: 2px 0 0;
+  opacity: 0.92;
+  mask-image: linear-gradient(180deg, transparent 0%, #000 16%, #000 100%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 16%, #000 100%);
 }
 
 body.is-electron .waveform {
   height: 100%;
+}
+
+body.is-electron .layout-resizer {
+  -webkit-app-region: no-drag;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  display: block;
+  padding: 0;
+  position: relative;
+  z-index: 20;
+}
+
+body.is-electron .layout-resizer--wave {
+  width: 100%;
+  height: 10px;
+  margin-top: -5px;
+  cursor: ns-resize;
+}
+
+body.is-electron .layout-resizer--wave::before,
+body.is-electron .layout-resizer--body::before {
+  content: "";
+  position: absolute;
+  border-radius: 999px;
+  opacity: 0;
+  transition: opacity 140ms ease, background 140ms ease;
+}
+
+body.is-electron .layout-resizer--wave::before {
+  left: 50%;
+  top: 4px;
+  width: 52px;
+  height: 2px;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.28);
+}
+
+body.is-electron .layout-resizer--wave:hover::before,
+body.is-electron .layout-resizer--body:hover::before,
+body.is-resizing-layout .layout-resizer::before {
+  opacity: 1;
+  background: rgba(74, 222, 128, 0.72);
+}
+
+body.is-resizing-layout {
+  cursor: grabbing;
+  user-select: none;
+}
+
+body.is-resizing-layout .wave-stage,
+body.is-resizing-layout .progress-rail {
+  pointer-events: none;
 }
 
 body.is-electron .sheet {
@@ -2766,8 +2823,8 @@ body.is-electron .sheet {
   padding: 0;
   border-radius: 0;
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-  grid-template-rows: auto auto auto minmax(0, 1fr);
+  grid-template-columns: minmax(180px, var(--desktop-body-left, 48fr)) 10px minmax(220px, var(--desktop-body-right, 52fr));
+  grid-template-rows: auto auto minmax(0, 1fr);
   overflow: hidden;
   -webkit-app-region: no-drag;
   background:
@@ -2783,7 +2840,7 @@ body.is-electron .sheet__head {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 20px;
-  padding: 18px 30px 14px;
+  padding: 15px 30px 13px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.09);
   background: rgba(0, 0, 0, 0.52);
 }
@@ -2848,9 +2905,10 @@ body.is-electron .desktop-transport__btn.is-error {
 body.is-electron .player-row {
   grid-column: 1 / -1;
   margin: 0;
-  padding: 14px 30px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.035);
+  padding: 9px 30px 10px;
+  gap: 12px;
+  border-bottom: 0;
+  background: rgba(255, 255, 255, 0.018);
 }
 
 body.is-electron .desktop-queue {
@@ -2986,18 +3044,30 @@ body.is-electron .desktop-queue__empty {
 }
 
 body.is-electron .play-button {
+  width: 36px;
+  height: 36px;
   background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   box-shadow: none;
 }
 
 body.is-electron .progress-rail {
-  height: 4px;
-  background: rgba(255, 255, 255, 0.16);
+  height: 2px;
+  background: rgba(255, 255, 255, 0.22);
+}
+
+body.is-electron .progress-fill {
+  height: 2px;
+}
+
+body.is-electron .progress-thumb {
+  width: 7px;
+  height: 7px;
 }
 
 body.is-electron .player-row__times {
   color: rgba(255, 255, 255, 0.62);
+  margin-top: 3px;
 }
 
 body.is-electron .transcript-list {
@@ -3005,13 +3075,30 @@ body.is-electron .transcript-list {
   margin: 0;
   min-height: 0;
   border-radius: 0;
-  padding: 28px 30px 60px;
+  padding: 24px 30px 60px;
   background:
     radial-gradient(circle, rgba(255, 255, 255, 0.08) 1px, transparent 1px) 0 0 / 16px 16px,
     rgba(0, 0, 0, 0.18);
   border-right: 1px solid rgba(255, 255, 255, 0.08);
   mask-image: none;
   -webkit-mask-image: none;
+}
+
+body.is-electron .layout-resizer--body {
+  grid-column: 2;
+  grid-row: 3;
+  align-self: stretch;
+  justify-self: stretch;
+  cursor: ew-resize;
+  min-width: 10px;
+}
+
+body.is-electron .layout-resizer--body::before {
+  top: 24px;
+  bottom: 24px;
+  left: 4px;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.16);
 }
 
 body.is-electron .transcript-list::-webkit-scrollbar,
@@ -3045,7 +3132,7 @@ body.is-electron .transcript-line.is-active .transcript-copy {
 }
 
 body.is-electron .chat {
-  grid-column: 2;
+  grid-column: 3;
   display: flex;
   min-height: 0;
   min-width: 0;
@@ -3240,7 +3327,7 @@ body.is-electron[data-desktop-mode="light"] .chat__input {
 @media (max-width: 860px) {
   body.is-electron .sheet {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto minmax(180px, 1fr) minmax(220px, 1fr);
+    grid-template-rows: auto auto minmax(150px, var(--desktop-body-left, 48fr)) 10px minmax(170px, var(--desktop-body-right, 52fr));
   }
 
   body.is-electron .transcript-list,
@@ -3249,7 +3336,26 @@ body.is-electron[data-desktop-mode="light"] .chat__input {
     border-right: 0;
   }
 
+  body.is-electron .layout-resizer--body {
+    grid-column: 1;
+    grid-row: 4;
+    min-width: 0;
+    min-height: 10px;
+    cursor: ns-resize;
+  }
+
+  body.is-electron .layout-resizer--body::before {
+    left: 50%;
+    right: auto;
+    top: 4px;
+    bottom: auto;
+    width: 52px;
+    height: 2px;
+    transform: translateX(-50%);
+  }
+
   body.is-electron .chat {
+    grid-row: 5;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
   }
 }
@@ -3261,4 +3367,337 @@ body.is-electron[data-desktop-mode="light"] .chat__input {
   body.is-electron .terminal__clock {
     font-size: 1.4rem;
   }
+}
+
+/* ===================== Electron mockup alignment ===================== */
+body.is-electron .terminal__status {
+  width: max-content;
+  max-width: calc(100% - 48px);
+  margin: 6px auto 0;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(248, 113, 113, 0.24);
+  background: rgba(248, 113, 113, 0.1);
+  color: rgba(248, 113, 113, 0.92);
+  font-family: var(--font-sans);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  line-height: 1.2;
+  text-transform: none;
+}
+
+body.is-electron .terminal__dot {
+  width: 5px;
+  height: 5px;
+  background: #f87171;
+  box-shadow: none;
+}
+
+body.is-electron .sheet {
+  display: flex;
+  flex-direction: column;
+  grid-template-columns: none;
+  grid-template-rows: none;
+}
+
+body.is-electron .sheet__head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 18px 30px 16px;
+  background: rgba(0, 0, 0, 0.45);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+body.is-electron .sheet__head-text {
+  min-width: 0;
+}
+
+body.is-electron .sheet__kicker,
+body.is-electron .sheet__title,
+body.is-electron .sheet__sub {
+  display: block;
+  margin: 0;
+}
+
+body.is-electron .sheet__kicker {
+  margin-bottom: 5px;
+  color: rgba(255, 255, 255, 0.38);
+  font-family: var(--font-sans);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+body.is-electron .sheet__title {
+  margin-bottom: 4px;
+  color: #ffffff;
+  font-family: var(--font-sans);
+  font-size: 1.55rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1.14;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.is-electron .sheet__sub {
+  color: rgba(255, 255, 255, 0.45);
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.is-electron .sheet__sub-dash {
+  display: none;
+}
+
+body.is-electron .desktop-transport {
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+body.is-electron .desktop-transport__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  min-width: 42px;
+  padding: 0 14px;
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+}
+
+body.is-electron .desktop-transport__btn[data-favorite] {
+  border-color: rgba(248, 113, 113, 0.25);
+  background: rgba(248, 113, 113, 0.05);
+  color: rgba(248, 113, 113, 0.78);
+}
+
+body.is-electron .desktop-transport__btn[data-favorite]:hover,
+body.is-electron .desktop-transport__btn[data-favorite].is-active {
+  border-color: rgba(248, 113, 113, 0.52);
+  background: rgba(248, 113, 113, 0.13);
+  color: #f87171;
+}
+
+body.is-electron .desktop-transport__badge {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(74, 222, 128, 0.25);
+  color: #4ade80;
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+body.is-electron .player-row {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  padding: 10px 30px 11px;
+  gap: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+body.is-electron .play-button {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.94);
+  color: #05060a;
+  font-size: 0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.42);
+}
+
+body.is-electron .play-button::before {
+  content: "";
+  width: 0;
+  height: 0;
+  margin-left: 2px;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-left: 10px solid currentColor;
+}
+
+body.is-electron .play-button[aria-pressed="true"]::before {
+  content: "II";
+  width: auto;
+  height: auto;
+  margin-left: 0;
+  border: 0;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: -0.12em;
+}
+
+body.is-electron .play-button:hover {
+  background: #ffffff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.52);
+}
+
+body.is-electron .play-button:active {
+  transform: scale(0.92);
+}
+
+body.is-electron .progress-rail {
+  height: 2px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  transition: height 150ms ease, background 150ms ease;
+}
+
+body.is-electron .progress-rail:hover,
+body.is-electron .progress-rail:focus-visible {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.24);
+}
+
+body.is-electron .progress-fill {
+  height: 100%;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: none;
+}
+
+body.is-electron .progress-thumb {
+  width: 9px;
+  height: 9px;
+  background: #ffffff;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
+  opacity: 0;
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+
+body.is-electron .progress-rail:hover .progress-thumb,
+body.is-electron .progress-rail:focus-visible .progress-thumb,
+body.is-electron .progress-rail.is-dragging .progress-thumb {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+body.is-electron .desktop-queue {
+  flex: 0 0 auto;
+  max-height: 220px;
+}
+
+body.is-electron .transcript-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  margin: 0;
+  padding: 22px 30px 30px;
+  overflow-y: auto;
+  border-right: 0;
+}
+
+body.is-electron .layout-resizer--body {
+  display: none;
+}
+
+body.is-electron .chat {
+  flex: 0 0 auto;
+  min-height: auto;
+  margin: 0;
+  padding: 12px 30px 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(0, 0, 0, 0.35);
+  gap: 10px;
+}
+
+body.is-electron .chat__thread {
+  flex: 0 1 auto;
+  max-height: 90px;
+  min-height: 0;
+  margin: 0;
+  padding-right: 4px;
+}
+
+body.is-electron .chat__hint {
+  padding: 6px 0 10px;
+  text-align: center;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.28);
+}
+
+body.is-electron .chat__composer {
+  min-height: 40px;
+  border-radius: 24px;
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
+}
+
+body.is-electron .chat__composer:focus-within {
+  border-color: rgba(74, 222, 128, 0.42);
+  box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.08);
+}
+
+body.is-electron .chat__input {
+  padding: 10px 14px;
+  font-size: 0.82rem;
+}
+
+body.is-electron .chat__input::placeholder {
+  color: rgba(255, 255, 255, 0.25);
+}
+
+body.is-electron .chat__send {
+  width: 30px;
+  height: 30px;
+  margin-right: 4px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(74, 222, 128, 0.18);
+  color: #4ade80;
+}
+
+body.is-electron .chat__send:hover:not(:disabled) {
+  background: rgba(74, 222, 128, 0.3);
+  color: #86efac;
+}
+
+body.is-electron[data-desktop-mode="light"] .terminal__status {
+  border-color: rgba(220, 38, 38, 0.22);
+  background: rgba(220, 38, 38, 0.08);
+  color: rgba(185, 28, 28, 0.86);
+}
+
+body.is-electron[data-desktop-mode="light"] .terminal__dot {
+  background: #dc2626;
+}
+
+body.is-electron[data-desktop-mode="light"] .play-button {
+  background: #111827;
+  color: #ffffff;
+}
+
+body.is-electron[data-desktop-mode="light"] .progress-fill,
+body.is-electron[data-desktop-mode="light"] .progress-thumb {
+  background: #111827;
+}
+
+body.is-electron[data-desktop-mode="light"] .chat__send {
+  background: rgba(22, 163, 74, 0.14);
+  color: #15803d;
 }

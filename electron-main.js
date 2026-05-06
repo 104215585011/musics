@@ -3,6 +3,19 @@ const fs = require("fs");
 const path = require("path");
 const { fork } = require("child_process");
 
+const ELECTRON_USER_DATA_DIR = path.join(__dirname, ".electron-user-data");
+const ELECTRON_CACHE_DIR = path.join(__dirname, ".electron-cache");
+
+try {
+  fs.mkdirSync(ELECTRON_USER_DATA_DIR, { recursive: true });
+  fs.mkdirSync(ELECTRON_CACHE_DIR, { recursive: true });
+  app.setPath("userData", ELECTRON_USER_DATA_DIR);
+  app.commandLine.appendSwitch("disk-cache-dir", ELECTRON_CACHE_DIR);
+  app.commandLine.appendSwitch("disable-gpu-shader-disk-cache");
+} catch (error) {
+  console.warn("[claudio] Could not prepare Electron cache paths:", error.message);
+}
+
 let mainWindow = null;
 let serverProcess = null;
 let tray = null;

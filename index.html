@@ -18,7 +18,7 @@
       href="https://fonts.googleapis.com/css2?family=Doto:wght@400;600&family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@300;400;500&family=VT323&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=claudio-v46" />
+    <link rel="stylesheet" href="styles.css?v=claudio-v52" />
   </head>
   <body data-active-view="player">
     <div class="electron-titlebar" id="electronTitlebar" hidden>
@@ -75,18 +75,15 @@
             <button class="wave-stage" type="button" data-wave-tap aria-label="Seek using waveform">
               <div class="waveform" data-waveform></div>
             </button>
+            <button class="layout-resizer layout-resizer--wave" data-resize-wave type="button" aria-label="Resize waveform area"></button>
           </header>
 
           <section class="sheet">
             <div class="sheet__head">
               <div class="sheet__head-text">
-                <p class="sheet__kicker"><span data-artist-badge>mmguo</span>'s</p>
-                <h2 class="sheet__title">Pilot Episode</h2>
-                <p class="sheet__sub">
-                  <span data-title>Blinding Lights</span>
-                  <span class="sheet__sub-dash">—</span>
-                  <span data-subtitle>The Weeknd</span>
-                </p>
+                <p class="sheet__kicker"><span data-artist-badge>mmguo</span>'s Pilot Episode</p>
+                <h2 class="sheet__title" data-title>Blinding Lights</h2>
+                <p class="sheet__sub" data-subtitle>The Weeknd</p>
               </div>
               <a class="apple-link" href="#" target="_blank" rel="noreferrer">
                 <span aria-hidden="true">♪</span> Listen on Apple Music
@@ -95,7 +92,9 @@
               <div class="desktop-transport" aria-label="Desktop transport controls">
                 <button class="desktop-transport__btn" data-prev type="button" aria-label="Previous track">⏮</button>
                 <button class="desktop-transport__btn" data-next type="button" aria-label="Next track">⏭</button>
-                <button class="desktop-transport__btn" data-queue-toggle type="button" aria-label="Show queue">Queue</button>
+                <button class="desktop-transport__btn desktop-transport__btn--queue" data-queue-toggle type="button" aria-label="Show queue">
+                  Queue <span class="desktop-transport__badge" data-queue-count>0</span>
+                </button>
                 <button class="desktop-transport__btn" data-favorite type="button" aria-label="Favorite current track">♡</button>
               </div>
             </div>
@@ -127,6 +126,7 @@
             </section>
 
             <div class="transcript-list" data-transcript></div>
+            <button class="layout-resizer layout-resizer--body" data-resize-body type="button" aria-label="Resize lyrics and chat areas"></button>
 
             <section class="chat" data-chat>
               <div class="chat__thread" data-chat-thread aria-live="polite">
@@ -386,8 +386,8 @@
       </div>
     </div>
 
-    <script src="api.js?v=claudio-v46" defer></script>
-    <script src="script.js?v=claudio-v46" defer></script>
-    <script src="app.js?v=claudio-v46" defer></script>
+    <script src="api.js?v=claudio-v52" defer></script>
+    <script src="script.js?v=claudio-v52" defer></script>
+    <script src="app.js?v=claudio-v52" defer></script>
   </body>
 </html>

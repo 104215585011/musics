@@ -1,7 +1,7 @@
 const FAILURE_REASON_LABELS = {
   "no-license": "版权/授权不足，当前账号或端侧不能播放",
   "paid-or-vip": "需要 VIP 或单曲购买",
-  "player-backend": "播放器后端不可用，请检查 mpv / ncm-cli 播放器配置",
+  "player-backend": "播放器后端不可用，请检查网易云 API 服务配置",
   "queue-empty": "播放队列为空",
   "playback-not-confirmed": "已发送播放请求，但未确认播放器切到这首歌",
   "playback-failed": "播放请求失败",

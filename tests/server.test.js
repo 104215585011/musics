@@ -1,14 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const crypto = require("node:crypto");
 
 const {
-  parseDefaultSongIds,
-  optionalFile,
-  resolveKeyMaterial,
-  normalizeDeviceJsonString,
+  getConfig,
 } = require("../server/config.js");
-const { buildOpenApiUrl } = require("../server/netease-api.js");
 const { createHubState } = require("../server/state/hub.js");
 const { createDefaultStore } = require("../server/state/store.js");
 const { createClaudioRouter } = require("../server/routes/claudio.js");
@@ -18,13 +13,13 @@ const {
   isMatchingPlaybackTrack,
 } = require("../server/services/playback.js");
 const {
+  buildRouteErrorResponse,
+  sendJson,
+} = require("../server/server.js");
+const {
   buildPersonalizationSnapshot,
   inferScene,
 } = require("../server/services/personalization.js");
-const {
-  buildSeedReferencesFromDefaultSongIds,
-  chooseBestSongMatch,
-} = require("../server/providers/music/netease.js");
 const {
   normalizeSongItem: normalizeNeteaseApiSongItem,
   normalizeQrCheckPayload,
@@ -32,86 +27,55 @@ const {
   pickDefaultPlaylist: pickNeteaseApiDefaultPlaylist,
 } = require("../server/providers/music/ncma.js");
 
-test("parseDefaultSongIds trims and filters empty song ids", () => {
-  assert.deepEqual(parseDefaultSongIds("1, 2, ,3"), ["1", "2", "3"]);
-});
+test("getConfig exposes only the NetEase API music provider configuration", () => {
+  const config = getConfig();
 
-test("optionalFile accepts inline pem content for backward compatibility", () => {
-  const pem = "-----BEGIN PRIVATE KEY-----\\nabc\\n-----END PRIVATE KEY-----";
-  assert.equal(optionalFile(pem), "-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----");
-});
-
-test("resolveKeyMaterial wraps raw base64 keys into pem blocks", () => {
-  const resolved = resolveKeyMaterial("QUJDREVGRw==", "", "PUBLIC KEY");
+  assert.equal(config.musicProvider, "netease-api");
+  assert.equal(config.neteaseApi.baseUrl, "http://localhost:4000");
+  assert.equal(config.neteaseApi.defaultSongQuery, "Bread If");
   assert.equal(
-    resolved,
-    "-----BEGIN PUBLIC KEY-----\nQUJDREVGRw==\n-----END PUBLIC KEY-----"
+    config.neteaseApi.proxy,
+    process.env.NETEASE_API_PROXY ?? process.env.HTTPS_PROXY ?? process.env.HTTP_PROXY ?? process.env.ALL_PROXY ?? ""
   );
+  assert.deepEqual(Object.keys(config).sort(), [
+    "brain",
+    "musicProvider",
+    "neteaseApi",
+    "port",
+    "scheduler",
+    "tts",
+    "upnp",
+    "weather",
+  ]);
 });
 
-test("resolveKeyMaterial supports raw base64 pasted into legacy PATH fields", () => {
-  const resolved = resolveKeyMaterial("", "QUJDREVGRw==", "PRIVATE KEY");
-  assert.equal(
-    resolved,
-    "-----BEGIN PRIVATE KEY-----\nQUJDREVGRw==\n-----END PRIVATE KEY-----"
-  );
+test("buildRouteErrorResponse maps backend dependency failures to HTTP 503", () => {
+  const result = buildRouteErrorResponse(new Error("fetch failed"));
+
+  assert.equal(result.statusCode, 503);
+  assert.equal(result.payload.error, "Claudio hub request failed");
+  assert.equal(result.payload.reason, "backend-unavailable");
+  assert.equal(result.payload.detail, "fetch failed");
 });
 
-test("normalizeDeviceJsonString replaces placeholder desktop values with openapi-safe defaults", () => {
-  const normalized = JSON.parse(
-    normalizeDeviceJsonString(
-      JSON.stringify({
-        deviceType: "openapi",
-        os: "openapi",
-        appVer: "0.1",
-        channel: "codex",
-        model: "desktop",
-        deviceId: "local-player",
-        brand: "codex",
-        osVer: "1.0.0",
-        clientIp: "127.0.0.1",
-      })
-    )
-  );
-
-  assert.deepEqual(normalized, {
-    deviceType: "andrwear",
-    os: "otos",
-    appVer: "0.1",
-    channel: "hm",
-    model: "kys",
-    deviceId: "357",
-    brand: "hm",
-    osVer: "8.1.0",
-    clientIp: "192.168.0.1",
-  });
-});
-
-test("buildOpenApiUrl includes required open api query fields", () => {
-  const { privateKey } = crypto.generateKeyPairSync("rsa", {
-    modulusLength: 2048,
-  });
-
-  const url = buildOpenApiUrl(
-    "https://openapi.music.163.com",
-    "/openapi/music/basic/song/detail/get/v2",
-    {
-      appId: "app-id",
-      accessToken: "token",
-      appSecret: "secret",
-      signType: "RSA_SHA256",
-      privateKey: privateKey.export({ type: "pkcs1", format: "pem" }),
-      deviceJson: "{\"deviceType\":\"openapi\"}",
+test("sendJson allows local Electron fetches from alternate origins", () => {
+  let headers = null;
+  let body = "";
+  const response = {
+    writeHead(statusCode, nextHeaders) {
+      assert.equal(statusCode, 200);
+      headers = nextHeaders;
     },
-    { songId: "123", withUrl: true }
-    );
+    end(nextBody) {
+      body = nextBody;
+    },
+  };
 
-  assert.match(url, /^https:\/\/openapi\.music\.163\.com\/openapi\/music\/basic\/song\/detail\/get\/v2\?/);
-  assert.match(url, /appId=app-id/);
-  assert.match(url, /appSecret=secret/);
-  assert.match(url, /accessToken=token/);
-  assert.match(url, /bizContent=/);
-  assert.match(url, /sign=/);
+  sendJson(response, 200, { ok: true });
+
+  assert.equal(headers["Access-Control-Allow-Origin"], "*");
+  assert.match(headers["Access-Control-Allow-Methods"], /GET/);
+  assert.equal(body, "{\"ok\":true}");
 });
 
 test("createHubState stores and stamps Claudio snapshot updates", () => {
@@ -520,44 +484,6 @@ test("createDefaultStore returns bounded state containers", () => {
   assert.deepEqual(store.messages, []);
 });
 
-test("chooseBestSongMatch prefers exact title artist and duration matches", () => {
-  const match = chooseBestSongMatch(
-    [
-      {
-        originalId: 1,
-        id: "enc-1",
-        name: "Blinding Lights",
-        duration: 200045,
-        artists: [{ name: "The Weeknd" }],
-        album: { name: "After Hours" },
-      },
-      {
-        originalId: 2,
-        id: "enc-2",
-        name: "Blinding Lights (Instrumental)",
-        duration: 202104,
-        artists: [{ name: "The Weeknd" }],
-        album: { name: "Blinding Lights" },
-      },
-    ],
-    {
-      title: "Blinding Lights",
-      artist: "The Weeknd",
-      album: "After Hours",
-      duration: 200,
-    }
-  );
-
-  assert.deepEqual(match, {
-    encryptedId: "enc-1",
-    originalId: "1",
-    title: "Blinding Lights",
-    artist: "The Weeknd",
-    album: "After Hours",
-    duration: 200.045,
-  });
-});
-
 test("NeteaseCloudMusicApi normalizers map songs and liked playlist", () => {
   const song = normalizeNeteaseApiSongItem({
     id: 186016,
@@ -597,7 +523,7 @@ test("NeteaseCloudMusicApi normalizes QR login responses", () => {
   assert.equal(checked.cookie, "MUSIC_U=token;");
 });
 
-test("classifyPlaybackFailure maps NetEase and CLI failures into user-facing reasons", () => {
+test("classifyPlaybackFailure maps NetEase playback failures into user-facing reasons", () => {
   assert.equal(classifyPlaybackFailure({ subCode: 10003 }), "no-license");
   assert.equal(classifyPlaybackFailure({ subCode: 10004 }), "paid-or-vip");
   assert.equal(classifyPlaybackFailure({ message: "mpv not found" }), "player-backend");

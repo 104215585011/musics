@@ -1,5 +1,8 @@
 node_modules/
 .env
+.electron-cache/
+.electron-user-data/
+.npm-cache/
 *.log
 .DS_Store
 Thumbs.db

@@ -140,12 +140,12 @@ function buildTrackFromNeteaseData({ searchItem = null, detailItem = null, lyric
   };
 }
 
-function buildTrackFromCliState(cliState = {}, fallbackTrack = null) {
-  const title = cliState.title || fallbackTrack?.title || "CLI Playback";
+function buildTrackFromPlaybackState(playbackState = {}, fallbackTrack = null) {
+  const title = playbackState.title || fallbackTrack?.title || "Remote Playback";
   const artist =
-    cliState.artist || cliState.subtitle || cliState.author || fallbackTrack?.artist || "ncm-cli";
-  const album = cliState.album || fallbackTrack?.album || "Remote Queue";
-  const duration = Number.isFinite(cliState.duration) ? cliState.duration : fallbackTrack?.duration ?? 0;
+    playbackState.artist || playbackState.subtitle || playbackState.author || fallbackTrack?.artist || "NetEase API";
+  const album = playbackState.album || fallbackTrack?.album || "Remote Queue";
+  const duration = Number.isFinite(playbackState.duration) ? playbackState.duration : fallbackTrack?.duration ?? 0;
   const accent = fallbackTrack?.accent || "#7dd3fc";
   const waveform =
     Array.isArray(fallbackTrack?.waveform) && fallbackTrack.waveform.length
@@ -153,7 +153,7 @@ function buildTrackFromCliState(cliState = {}, fallbackTrack = null) {
       : createWaveform(0.59 + title.length * 0.01, 0.41 + artist.length * 0.01, 68);
 
   return {
-    id: `cli-${title}-${artist}`.toLowerCase().replace(/[^a-z0-9-]+/g, "-"),
+    id: `remote-${title}-${artist}`.toLowerCase().replace(/[^a-z0-9-]+/g, "-"),
     title,
     artist,
     album,
@@ -437,6 +437,45 @@ function seekFromPointer(event, element, duration) {
   return ratio * duration;
 }
 
+const DESKTOP_LAYOUT_KEY = "claudioDesktopLayout";
+const DEFAULT_DESKTOP_LAYOUT = {
+  waveHeight: 104,
+  bodySplit: 48,
+};
+
+function normalizeDesktopLayout(layout = {}) {
+  return {
+    waveHeight: Math.round(clamp(Number(layout.waveHeight) || DEFAULT_DESKTOP_LAYOUT.waveHeight, 72, 150)),
+    bodySplit: Math.round(clamp(Number(layout.bodySplit) || DEFAULT_DESKTOP_LAYOUT.bodySplit, 28, 72)),
+  };
+}
+
+function readDesktopLayout(storage = typeof localStorage !== "undefined" ? localStorage : null) {
+  if (!storage) {
+    return { ...DEFAULT_DESKTOP_LAYOUT };
+  }
+
+  try {
+    return normalizeDesktopLayout(JSON.parse(storage.getItem(DESKTOP_LAYOUT_KEY) || "null") || {});
+  } catch {
+    return { ...DEFAULT_DESKTOP_LAYOUT };
+  }
+}
+
+function writeDesktopLayout(storage, layout) {
+  const normalized = normalizeDesktopLayout(layout);
+  storage?.setItem?.(DESKTOP_LAYOUT_KEY, JSON.stringify(normalized));
+  return normalized;
+}
+
+function applyDesktopLayout(root, layout) {
+  const normalized = normalizeDesktopLayout(layout);
+  root?.style.setProperty("--desktop-wave-height", `${normalized.waveHeight}px`);
+  root?.style.setProperty("--desktop-body-left", `${normalized.bodySplit}fr`);
+  root?.style.setProperty("--desktop-body-right", `${100 - normalized.bodySplit}fr`);
+  return normalized;
+}
+
 function wireElectronTitlebar() {
   const electronAPI = window.electronAPI;
   if (!electronAPI?.isElectron) return;
@@ -468,12 +507,70 @@ function wireElectronTitlebar() {
   });
 }
 
+function wireDesktopLayoutResize(root) {
+  if (!document.body.classList.contains("is-electron")) return;
+  const waveHandle = root.querySelector("[data-resize-wave]");
+  const bodyHandle = root.querySelector("[data-resize-body]");
+  let layout = applyDesktopLayout(root, readDesktopLayout());
+
+  function persist(nextLayout) {
+    layout = applyDesktopLayout(root, writeDesktopLayout(localStorage, nextLayout));
+  }
+
+  function wirePointerDrag(handle, onMove) {
+    if (!handle || handle.dataset.resizeWired === "1") return;
+    handle.dataset.resizeWired = "1";
+    handle.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      handle.setPointerCapture?.(event.pointerId);
+      document.body.classList.add("is-resizing-layout");
+      const startX = event.clientX;
+      const startY = event.clientY;
+      const startLayout = { ...layout };
+
+      function move(moveEvent) {
+        persist(onMove({ startX, startY, startLayout, event: moveEvent }));
+      }
+
+      function end(endEvent) {
+        document.body.classList.remove("is-resizing-layout");
+        handle.releasePointerCapture?.(endEvent.pointerId);
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", end);
+        window.removeEventListener("pointercancel", end);
+      }
+
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", end);
+      window.addEventListener("pointercancel", end);
+    });
+  }
+
+  wirePointerDrag(waveHandle, ({ startY, startLayout, event }) => ({
+    ...startLayout,
+    waveHeight: startLayout.waveHeight + event.clientY - startY,
+  }));
+
+  wirePointerDrag(bodyHandle, ({ startX, startY, startLayout, event }) => {
+    const sheetRect = root.querySelector(".sheet")?.getBoundingClientRect();
+    const isStacked = Number(sheetRect?.width ?? 0) <= 860;
+    const available = isStacked ? sheetRect?.height || 1 : sheetRect?.width || 1;
+    const delta = isStacked ? event.clientY - startY : event.clientX - startX;
+    const deltaPercent = (delta / available) * 100;
+    return {
+      ...startLayout,
+      bodySplit: startLayout.bodySplit + deltaPercent,
+    };
+  });
+}
+
 function bootstrapPlayer() {
   wireElectronTitlebar();
   const root = document.querySelector("[data-player]");
   if (!root) {
     return;
   }
+  wireDesktopLayoutResize(root);
 
   const titleEl = root.querySelector("[data-title]");
   const subtitleEl = root.querySelector("[data-subtitle]");
@@ -508,6 +605,7 @@ function bootstrapPlayer() {
   const desktopQueueEl = root.querySelector("[data-desktop-queue]");
   const desktopQueueListEl = root.querySelector("[data-desktop-queue-list]");
   const queueToggleEl = root.querySelector("[data-queue-toggle]");
+  const queueCountEl = root.querySelector("[data-queue-count]");
   const queueCloseEl = root.querySelector("[data-queue-close]");
   const favoriteButtonEl = root.querySelector("[data-favorite]");
 
@@ -1134,6 +1232,7 @@ function bootstrapPlayer() {
   function renderDesktopQueue() {
     if (!desktopQueueListEl) return;
     const tracks = remoteSession.desktopQueueTracks || [];
+    if (queueCountEl) queueCountEl.textContent = String(tracks.length);
     desktopQueueListEl.innerHTML = "";
     if (!tracks.length) {
       desktopQueueListEl.innerHTML = '<li class="desktop-queue__empty">正在加载喜欢的音乐...</li>';
@@ -1818,7 +1917,7 @@ function bootstrapPlayer() {
     });
     audioEl.addEventListener("ended", () => {
       // In remote mode with local audio, trigger next track via API.
-      // In remote mode without local audio (CLI), skip — server handles it.
+      // In remote mode without local audio, skip; the server handles playback.
       if (isRemoteMode() && remoteSession.track?.src && api) {
         api.nextTrack().then(fetchNowSnapshot).catch(() => {});
         return;
@@ -1899,8 +1998,11 @@ const exported = {
   getPrevTrackIndex,
   parseTimedLyrics,
   buildTrackFromNeteaseData,
-  buildTrackFromCliState,
+  buildTrackFromPlaybackState,
   buildTrackFromClaudioNow,
+  normalizeDesktopLayout,
+  readDesktopLayout,
+  writeDesktopLayout,
   createPlayerController,
   getPlaylistTrackStatus,
   getChatReplyText,
