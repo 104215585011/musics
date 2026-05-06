@@ -13,6 +13,7 @@ const {
   isMatchingPlaybackTrack,
 } = require("../server/services/playback.js");
 const {
+  buildNeteaseApiSpawnArgs,
   buildRouteErrorResponse,
   sendJson,
 } = require("../server/server.js");
@@ -33,10 +34,7 @@ test("getConfig exposes only the NetEase API music provider configuration", () =
   assert.equal(config.musicProvider, "netease-api");
   assert.equal(config.neteaseApi.baseUrl, "http://localhost:4000");
   assert.equal(config.neteaseApi.defaultSongQuery, "Bread If");
-  assert.equal(
-    config.neteaseApi.proxy,
-    process.env.NETEASE_API_PROXY ?? process.env.HTTPS_PROXY ?? process.env.HTTP_PROXY ?? process.env.ALL_PROXY ?? ""
-  );
+  assert.equal(config.neteaseApi.proxy, process.env.NETEASE_API_PROXY ?? "");
   assert.deepEqual(Object.keys(config).sort(), [
     "brain",
     "musicProvider",
@@ -47,6 +45,14 @@ test("getConfig exposes only the NetEase API music provider configuration", () =
     "upnp",
     "weather",
   ]);
+});
+
+test("buildNeteaseApiSpawnArgs disables the upstream version check", () => {
+  const args = buildNeteaseApiSpawnArgs();
+
+  assert.equal(args[0], "-e");
+  assert.match(args[1], /await require\('NeteaseCloudMusicApi\/server'\)\.serveNcmApi\(\{ checkVersion: false \}\)/);
+  assert.doesNotMatch(args[1], /NeteaseCloudMusicApi\/app\.js/);
 });
 
 test("buildRouteErrorResponse maps backend dependency failures to HTTP 503", () => {
@@ -521,6 +527,60 @@ test("NeteaseCloudMusicApi normalizes QR login responses", () => {
   });
   assert.equal(checked.success, true);
   assert.equal(checked.cookie, "MUSIC_U=token;");
+});
+
+test("NeteaseCloudMusicApi login refreshes QR when saved cookie is invalid", async () => {
+  const { createNeteaseApiProvider } = require("../server/providers/music/ncma.js");
+  const originalFetch = global.fetch;
+  const requests = [];
+  const store = {
+    cookie: "MUSIC_U=expired;",
+    getCookie() {
+      return this.cookie;
+    },
+    clearCookie() {
+      this.cookie = "";
+    },
+    saveCookie(cookie) {
+      this.cookie = cookie;
+    },
+  };
+
+  global.fetch = async (url) => {
+    const parsed = new URL(String(url));
+    requests.push(parsed.pathname);
+    if (parsed.pathname === "/login/status") {
+      return Response.json({ data: { profile: null } });
+    }
+    if (parsed.pathname === "/user/account") {
+      return Response.json({});
+    }
+    if (parsed.pathname === "/login/qr/key") {
+      return Response.json({ data: { unikey: "fresh-key" } });
+    }
+    if (parsed.pathname === "/login/qr/create") {
+      return Response.json({
+        data: {
+          qrimg: "data:image/png;base64,fresh",
+          qrurl: "https://example.test/fresh-qr",
+        },
+      });
+    }
+    return Response.json({});
+  };
+
+  try {
+    const provider = createNeteaseApiProvider({ baseUrl: "http://localhost:4000", timeoutMs: 1000 }, store);
+    const result = await provider.login();
+
+    assert.equal(result.success, true);
+    assert.equal(result.key, "fresh-key");
+    assert.equal(result.qrImg, "data:image/png;base64,fresh");
+    assert.equal(store.cookie, "");
+    assert.deepEqual(requests, ["/login/status", "/user/account", "/login/qr/key", "/login/qr/create"]);
+  } finally {
+    global.fetch = originalFetch;
+  }
 });
 
 test("classifyPlaybackFailure maps NetEase playback failures into user-facing reasons", () => {

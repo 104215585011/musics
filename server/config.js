@@ -41,11 +41,7 @@ function getConfig() {
       bitrate: Number.parseInt(process.env.NETEASE_API_BITRATE ?? "320000", 10),
       level: process.env.NETEASE_API_LEVEL ?? "",
       urlEndpoint: process.env.NETEASE_API_URL_ENDPOINT ?? "/song/url",
-      proxy: process.env.NETEASE_API_PROXY
-        ?? process.env.HTTPS_PROXY
-        ?? process.env.HTTP_PROXY
-        ?? process.env.ALL_PROXY
-        ?? "",
+      proxy: process.env.NETEASE_API_PROXY ?? "",
     },
     brain: {
       baseUrl: (process.env.AICODEE_BASE_URL ?? "https://v2.aicodee.com").replace(/\/+$/, ""),

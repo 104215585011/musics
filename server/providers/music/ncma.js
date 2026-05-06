@@ -565,7 +565,13 @@ function createNeteaseApiProvider(config, store) {
     },
     async login() {
       if (runtime.cookie) {
-        return { success: true, provider: "netease-api", status: 803, message: "Already logged in." };
+        const profile = await getAccount().catch(() => null);
+        if (profile?.userId) {
+          return { success: true, provider: "netease-api", status: 803, message: "Already logged in." };
+        }
+        runtime.cookie = "";
+        store?.clearCookie?.();
+        resetMusicCaches();
       }
       if (runtime.loginKey && Date.now() - runtime.loginStartedAt < 4.5 * 60 * 1000) {
         const checked = await checkLoginFlow().catch(() => null);

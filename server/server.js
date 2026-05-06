@@ -175,6 +175,22 @@ function buildRouteErrorResponse(error) {
   };
 }
 
+function buildNeteaseApiSpawnArgs() {
+  return [
+    "-e",
+    [
+      "(async () => {",
+      "  const generateConfig = require('NeteaseCloudMusicApi/generateConfig');",
+      "  await generateConfig();",
+      "  await require('NeteaseCloudMusicApi/server').serveNcmApi({ checkVersion: false });",
+      "})().catch((error) => {",
+      "  console.error(error);",
+      "  process.exit(1);",
+      "});",
+    ].join("\n"),
+  ];
+}
+
 function createServer(config) {
   const hub = createHubState();
   const hubStore = createHubStore();
@@ -334,9 +350,10 @@ function createServer(config) {
     : 4000;
 
   try {
-    const neteaseEntry = require.resolve("NeteaseCloudMusicApi/app.js");
+    require.resolve("NeteaseCloudMusicApi/server");
+    require.resolve("NeteaseCloudMusicApi/generateConfig");
     const nodeCommand = process.env.npm_node_execpath || (process.platform === "win32" ? "node.exe" : "node");
-    neteaseProcess = spawn(nodeCommand, [neteaseEntry], {
+    neteaseProcess = spawn(nodeCommand, buildNeteaseApiSpawnArgs(), {
       cwd: process.cwd(),
       env: {
         ...process.env,
@@ -399,6 +416,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  buildNeteaseApiSpawnArgs,
   buildRouteErrorResponse,
   createMusicFacade,
   createResponseHelpers,
