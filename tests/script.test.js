@@ -34,16 +34,16 @@ test("formatTime renders m:ss values", () => {
 
 test("normalizeDesktopLayout clamps adjustable module sizes", () => {
   assert.deepEqual(
-    normalizeDesktopLayout({ waveHeight: 40, bodySplit: 90 }),
-    { waveHeight: 72, bodySplit: 72 }
+    normalizeDesktopLayout({ waveHeight: 40 }),
+    { waveHeight: 72 }
   );
   assert.deepEqual(
-    normalizeDesktopLayout({ waveHeight: 180, bodySplit: 12 }),
-    { waveHeight: 150, bodySplit: 28 }
+    normalizeDesktopLayout({ waveHeight: 180 }),
+    { waveHeight: 150 }
   );
   assert.deepEqual(
-    normalizeDesktopLayout({ waveHeight: 118.6, bodySplit: 48.2 }),
-    { waveHeight: 119, bodySplit: 48 }
+    normalizeDesktopLayout({ waveHeight: 118.6 }),
+    { waveHeight: 119 }
   );
 });
 
@@ -58,12 +58,12 @@ test("desktop layout persistence falls back when storage is empty or invalid", (
     },
   };
 
-  assert.deepEqual(readDesktopLayout(storage), { waveHeight: 104, bodySplit: 48 });
+  assert.deepEqual(readDesktopLayout(storage), { waveHeight: 104 });
   values.set("claudioDesktopLayout", "{bad json");
-  assert.deepEqual(readDesktopLayout(storage), { waveHeight: 104, bodySplit: 48 });
+  assert.deepEqual(readDesktopLayout(storage), { waveHeight: 104 });
 
-  writeDesktopLayout(storage, { waveHeight: 130, bodySplit: 35 });
-  assert.deepEqual(readDesktopLayout(storage), { waveHeight: 130, bodySplit: 35 });
+  writeDesktopLayout(storage, { waveHeight: 130 });
+  assert.deepEqual(readDesktopLayout(storage), { waveHeight: 130 });
 });
 
 test("getActiveTranscriptIndex returns the latest started line", () => {

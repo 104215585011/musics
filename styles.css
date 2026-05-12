@@ -2780,8 +2780,7 @@ body.is-electron .layout-resizer--wave {
   cursor: ns-resize;
 }
 
-body.is-electron .layout-resizer--wave::before,
-body.is-electron .layout-resizer--body::before {
+body.is-electron .layout-resizer--wave::before {
   content: "";
   position: absolute;
   border-radius: 999px;
@@ -2799,7 +2798,6 @@ body.is-electron .layout-resizer--wave::before {
 }
 
 body.is-electron .layout-resizer--wave:hover::before,
-body.is-electron .layout-resizer--body:hover::before,
 body.is-resizing-layout .layout-resizer::before {
   opacity: 1;
   background: rgba(74, 222, 128, 0.72);
@@ -2822,9 +2820,8 @@ body.is-electron .sheet {
   margin: 0;
   padding: 0;
   border-radius: 0;
-  display: grid;
-  grid-template-columns: minmax(180px, var(--desktop-body-left, 48fr)) 10px minmax(220px, var(--desktop-body-right, 52fr));
-  grid-template-rows: auto auto minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   -webkit-app-region: no-drag;
   background:
@@ -2835,9 +2832,8 @@ body.is-electron .sheet {
 }
 
 body.is-electron .sheet__head {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
+  justify-content: space-between;
   align-items: center;
   gap: 20px;
   padding: 15px 30px 13px;
@@ -2903,7 +2899,6 @@ body.is-electron .desktop-transport__btn.is-error {
 }
 
 body.is-electron .player-row {
-  grid-column: 1 / -1;
   margin: 0;
   padding: 9px 30px 10px;
   gap: 12px;
@@ -2912,7 +2907,6 @@ body.is-electron .player-row {
 }
 
 body.is-electron .desktop-queue {
-  grid-column: 1 / -1;
   max-height: 240px;
   overflow: hidden;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -3071,7 +3065,6 @@ body.is-electron .player-row__times {
 }
 
 body.is-electron .transcript-list {
-  grid-column: 1;
   margin: 0;
   min-height: 0;
   border-radius: 0;
@@ -3082,23 +3075,6 @@ body.is-electron .transcript-list {
   border-right: 1px solid rgba(255, 255, 255, 0.08);
   mask-image: none;
   -webkit-mask-image: none;
-}
-
-body.is-electron .layout-resizer--body {
-  grid-column: 2;
-  grid-row: 3;
-  align-self: stretch;
-  justify-self: stretch;
-  cursor: ew-resize;
-  min-width: 10px;
-}
-
-body.is-electron .layout-resizer--body::before {
-  top: 24px;
-  bottom: 24px;
-  left: 4px;
-  width: 2px;
-  background: rgba(255, 255, 255, 0.16);
 }
 
 body.is-electron .transcript-list::-webkit-scrollbar,
@@ -3132,7 +3108,6 @@ body.is-electron .transcript-line.is-active .transcript-copy {
 }
 
 body.is-electron .chat {
-  grid-column: 3;
   display: flex;
   min-height: 0;
   min-width: 0;
@@ -3322,42 +3297,6 @@ body.is-electron[data-desktop-mode="light"] .chat__composer {
 
 body.is-electron[data-desktop-mode="light"] .chat__input {
   color: #111827;
-}
-
-@media (max-width: 860px) {
-  body.is-electron .sheet {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto minmax(150px, var(--desktop-body-left, 48fr)) 10px minmax(170px, var(--desktop-body-right, 52fr));
-  }
-
-  body.is-electron .transcript-list,
-  body.is-electron .chat {
-    grid-column: 1;
-    border-right: 0;
-  }
-
-  body.is-electron .layout-resizer--body {
-    grid-column: 1;
-    grid-row: 4;
-    min-width: 0;
-    min-height: 10px;
-    cursor: ns-resize;
-  }
-
-  body.is-electron .layout-resizer--body::before {
-    left: 50%;
-    right: auto;
-    top: 4px;
-    bottom: auto;
-    width: 52px;
-    height: 2px;
-    transform: translateX(-50%);
-  }
-
-  body.is-electron .chat {
-    grid-row: 5;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-  }
 }
 
 @media (max-width: 620px) {
@@ -3609,10 +3548,6 @@ body.is-electron .transcript-list {
   padding: 22px 30px 30px;
   overflow-y: auto;
   border-right: 0;
-}
-
-body.is-electron .layout-resizer--body {
-  display: none;
 }
 
 body.is-electron .chat {

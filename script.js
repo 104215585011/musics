@@ -440,13 +440,11 @@ function seekFromPointer(event, element, duration) {
 const DESKTOP_LAYOUT_KEY = "claudioDesktopLayout";
 const DEFAULT_DESKTOP_LAYOUT = {
   waveHeight: 104,
-  bodySplit: 48,
 };
 
 function normalizeDesktopLayout(layout = {}) {
   return {
     waveHeight: Math.round(clamp(Number(layout.waveHeight) || DEFAULT_DESKTOP_LAYOUT.waveHeight, 72, 150)),
-    bodySplit: Math.round(clamp(Number(layout.bodySplit) || DEFAULT_DESKTOP_LAYOUT.bodySplit, 28, 72)),
   };
 }
 
@@ -471,8 +469,6 @@ function writeDesktopLayout(storage, layout) {
 function applyDesktopLayout(root, layout) {
   const normalized = normalizeDesktopLayout(layout);
   root?.style.setProperty("--desktop-wave-height", `${normalized.waveHeight}px`);
-  root?.style.setProperty("--desktop-body-left", `${normalized.bodySplit}fr`);
-  root?.style.setProperty("--desktop-body-right", `${100 - normalized.bodySplit}fr`);
   return normalized;
 }
 
@@ -510,7 +506,6 @@ function wireElectronTitlebar() {
 function wireDesktopLayoutResize(root) {
   if (!document.body.classList.contains("is-electron")) return;
   const waveHandle = root.querySelector("[data-resize-wave]");
-  const bodyHandle = root.querySelector("[data-resize-body]");
   let layout = applyDesktopLayout(root, readDesktopLayout());
 
   function persist(nextLayout) {
@@ -550,18 +545,6 @@ function wireDesktopLayoutResize(root) {
     ...startLayout,
     waveHeight: startLayout.waveHeight + event.clientY - startY,
   }));
-
-  wirePointerDrag(bodyHandle, ({ startX, startY, startLayout, event }) => {
-    const sheetRect = root.querySelector(".sheet")?.getBoundingClientRect();
-    const isStacked = Number(sheetRect?.width ?? 0) <= 860;
-    const available = isStacked ? sheetRect?.height || 1 : sheetRect?.width || 1;
-    const delta = isStacked ? event.clientY - startY : event.clientX - startX;
-    const deltaPercent = (delta / available) * 100;
-    return {
-      ...startLayout,
-      bodySplit: startLayout.bodySplit + deltaPercent,
-    };
-  });
 }
 
 function bootstrapPlayer() {

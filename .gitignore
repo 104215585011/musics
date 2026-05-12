@@ -3,6 +3,7 @@ node_modules/
 .electron-cache/
 .electron-user-data/
 .npm-cache/
+.claude/
 *.log
 .DS_Store
 Thumbs.db
