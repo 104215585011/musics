@@ -1,0 +1,215 @@
+[
+  {
+    "id": "electron-ui-redesign",
+    "priority": 1,
+    "area": "electron",
+    "title": "Electron 端 UI 改进落地",
+    "user_visible_behavior": "在 Electron 桌面端：状态错误以小 pill 标签显示（非全大写绿字）；歌名大字居主位，三行层级清晰；播放键为实心白圆；进度条 hover 变高并出现拖拽点；聊天框固定底部（pill 形，非左右分列）；Transport 按钮胶囊形，hover 变绿",
+    "status": "not_started",
+    "verification": [
+      "npm test 全部通过",
+      "npm start 启动后端无报错",
+      "npm run desktop 启动 Electron",
+      "确认状态栏显示为 pill 标签而非全大写字符串",
+      "确认歌名字号明显大于艺人/节目名",
+      "确认播放键为实心白色圆形",
+      "鼠标悬停进度条，确认变高且圆点出现",
+      "确认聊天框在底部全宽，非左列/右列布局",
+      "同时在浏览器 http://localhost:3000 验证 PWA 端无样式回归"
+    ],
+    "evidence": "",
+    "notes": "参考 ui-mockup.html。所有改动只写在 styles.css 的 body.is-electron 选择器块内，不影响 PWA 端。"
+  },
+  {
+    "id": "player-core",
+    "priority": 2,
+    "area": "player",
+    "title": "播放器核心稳定性",
+    "user_visible_behavior": "点击播放后音频正常加载播放；进度条随播放推进；波形动画从 idle 切换到 playing 状态；暂停后恢复准确",
+    "status": "passing",
+    "verification": [
+      "npm start 启动后端",
+      "浏览器打开 http://localhost:3000",
+      "点击播放键，确认音频开始播放",
+      "确认波形动画加速（playing 状态）",
+      "确认进度条随时间推进",
+      "点击暂停，确认音频停止",
+      "再次点击播放，确认从暂停位置恢复"
+    ],
+    "evidence": "核心播放逻辑已在 script.js 实现，音频元素为 <audio data-audio>，WebSocket 推送状态。",
+    "notes": "NetEase 提供播放 URL；yt-dlp 作为备用来源。无 URL 时显示错误状态。"
+  },
+  {
+    "id": "waveform-canvas",
+    "priority": 2,
+    "area": "player",
+    "title": "波形可视化",
+    "user_visible_behavior": "播放时波形动画活跃，已播部分显示蓝色（rgba(82,183,255)），未播部分白色半透明；顶部渐变遮罩淡出；暂停时动画变慢",
+    "status": "passing",
+    "verification": [
+      "启动并播放一首歌",
+      "确认播放过的部分波形为蓝色",
+      "确认动画在播放时明显比暂停时快",
+      "确认波形顶部有渐变淡出效果"
+    ],
+    "evidence": "drawCanvasWave 函数在 script.js 实现，barWidth=2，barGap=3，playing 时 phase += 0.010，idle 时 += 0.0015。",
+    "notes": ""
+  },
+  {
+    "id": "lyrics-transcript",
+    "priority": 3,
+    "area": "player",
+    "title": "歌词同步显示",
+    "user_visible_behavior": "播放时当前行高亮（Electron 端蓝色 #60a5fa），已过行变暗，未到行正常显示；歌词随播放自动滚动到当前行",
+    "status": "passing",
+    "verification": [
+      "播放一首有 NetEase 歌词的歌",
+      "确认歌词按时间戳逐行出现",
+      "确认当前播放行高亮",
+      "确认页面自动滚动跟随当前行"
+    ],
+    "evidence": "transcript-list 由 WebSocket 推送 transcript 事件更新，is-active class 控制高亮。",
+    "notes": "无歌词时显示 AI 生成的占位文案（Claudio 旁白）。"
+  },
+  {
+    "id": "chat-ai-dj",
+    "priority": 3,
+    "area": "chat",
+    "title": "AI DJ 聊天",
+    "user_visible_behavior": "用户在聊天框输入，AI 回复显示在对话流中；可以通过聊天点播歌曲、调整播放风格",
+    "status": "passing",
+    "verification": [
+      "在聊天框输入「播一首民谣」",
+      "确认 AI 回复并执行意图",
+      "确认回复气泡样式正确"
+    ],
+    "evidence": "chat-router.js 处理意图匹配，aicodee.js 调用 AI brain，WebSocket 推送回复。",
+    "notes": "意图匹配在 matchIntent() 函数中，chat-router.js。"
+  },
+  {
+    "id": "queue-management",
+    "priority": 4,
+    "area": "player",
+    "title": "播放队列管理",
+    "user_visible_behavior": "点击 Queue 按钮显示当前队列；可点击队列中的曲目直接播放；⏮ ⏭ 按钮正确切换上/下一首",
+    "status": "passing",
+    "verification": [
+      "点击 Queue 按钮，确认队列面板显示",
+      "确认队列中有曲目列表",
+      "点击队列中一首歌，确认切换播放",
+      "点击 ⏭ 确认跳到下一首"
+    ],
+    "evidence": "desktop-queue 组件在 index.html，queue 数据由 WebSocket 推送。",
+    "notes": ""
+  },
+  {
+    "id": "netease-login",
+    "priority": 4,
+    "area": "music-source",
+    "title": "NetEase 登录与音乐获取",
+    "user_visible_behavior": "Settings 页点击「Login with NetEase」，显示 QR 码弹窗；手机扫码后登录成功；登录后可正常获取 NetEase 歌曲 URL 和歌词",
+    "status": "passing",
+    "verification": [
+      "进入 Settings 页",
+      "点击 Login with NetEase",
+      "确认 QR 码弹窗出现",
+      "确认扫码登录流程完整"
+    ],
+    "evidence": "login-modal 在 index.html，ncma.js 处理 NetEase API。",
+    "notes": "登录 session 存储在 server 端，重启后可能需要重新登录。"
+  },
+  {
+    "id": "upnp-speaker",
+    "priority": 5,
+    "area": "output",
+    "title": "UPnP 扬声器推流",
+    "user_visible_behavior": "Settings 页扫描局域网扬声器并列出；点击连接后，音乐推送到扬声器播放",
+    "status": "not_started",
+    "verification": [
+      "进入 Settings 页，点击「Scan for speakers」",
+      "确认发现局域网 UPnP 设备",
+      "点击连接，确认音频切换到扬声器"
+    ],
+    "evidence": "",
+    "notes": "upnp.js 已有实现，UI 面板条件显示（data-upnp-panel）。需要局域网环境测试。"
+  },
+  {
+    "id": "pwa-installable",
+    "priority": 5,
+    "area": "distribution",
+    "title": "PWA 可安装",
+    "user_visible_behavior": "Chrome 浏览器访问 localhost:3000，地址栏出现安装图标；安装后桌面/主屏幕出现 Claudio 图标；打开后全屏显示无浏览器 UI",
+    "status": "passing",
+    "verification": [
+      "Chrome 打开 http://localhost:3000",
+      "确认地址栏有安装按钮",
+      "安装并从桌面启动",
+      "确认以 standalone 模式打开"
+    ],
+    "evidence": "manifest.json 已配置，service worker 已注册。",
+    "notes": ""
+  },
+  {
+    "id": "profile-view",
+    "priority": 6,
+    "area": "profile",
+    "title": "Profile 页面",
+    "user_visible_behavior": "Profile 标签页显示用户信息、收藏播放列表、收听统计；播放列表可展开查看曲目",
+    "status": "not_started",
+    "verification": [
+      "点击 Profile 导航标签",
+      "确认用户名、handle 显示正确",
+      "确认播放列表加载并可展开",
+      "确认统计数据（今日分钟数等）显示"
+    ],
+    "evidence": "",
+    "notes": "UI 结构已在 index.html，数据从后端 /api/profile 或 WebSocket 获取。"
+  },
+  {
+    "id": "persona-files",
+    "priority": 6,
+    "area": "personalization",
+    "title": "Persona 文件编辑器",
+    "user_visible_behavior": "Settings 页 Persona Files 区域列出 user/ 目录下的 md 文件；点击可编辑并保存；AI 在推荐音乐时读取这些文件",
+    "status": "passing",
+    "verification": [
+      "进入 Settings 页",
+      "确认 Persona Files 列表出现（taste.md, routines.md, mood-rules.md）",
+      "点击其中一个，确认编辑器出现",
+      "修改并保存，确认提示成功"
+    ],
+    "evidence": "user-files.js 处理读写，user/ 目录下有三个 md 文件。",
+    "notes": ""
+  },
+  {
+    "id": "android-pwa",
+    "priority": 7,
+    "area": "distribution",
+    "title": "Android PWA 适配",
+    "user_visible_behavior": "Android Chrome 访问后端 URL，可添加到主屏幕；小屏幕布局不溢出；播放控制可正常使用",
+    "status": "not_started",
+    "verification": [
+      "Android 手机同局域网访问 http://<电脑IP>:3000",
+      "确认页面正常渲染，无横向溢出",
+      "确认播放键、进度条可正常触摸操作",
+      "添加到主屏幕并从主屏幕启动"
+    ],
+    "evidence": "",
+    "notes": "需先决定网络方案：局域网 vs 云端部署。小屏幕需验证单列布局是否已适配。"
+  },
+  {
+    "id": "theme-switching",
+    "priority": 7,
+    "area": "ui",
+    "title": "Dark/Light 主题切换",
+    "user_visible_behavior": "点击 Dark/Light 按钮，整个 sheet 区域样式切换；Electron 端切换后持久化到下次启动",
+    "status": "passing",
+    "verification": [
+      "点击 Light 按钮，确认 sheet 变为浅色",
+      "点击 Dark 按钮，确认 sheet 变回深色",
+      "Electron 端关闭重启后确认主题记忆"
+    ],
+    "evidence": "data-desktop-theme 属性控制，script.js 中处理持久化。",
+    "notes": ""
+  }
+]
